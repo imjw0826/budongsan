@@ -1,0 +1,1684 @@
+:root {
+  color: #0d0d0e;
+  background: #0d0d0e;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    Inter, ui-sans-serif, system-ui, "Segoe UI", "Noto Sans KR", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+
+  /* === macOS Settings.app inset-grouped tokens === */
+  /* Cards are now mostly opaque white with crisp hairline borders, matching
+     the "inset grouped list" aesthetic. Blur is kept lighter so type stays
+     sharp against the map underneath. */
+  --glass-bg: rgba(255, 255, 255, 0.92);
+  --glass-bg-strong: rgba(255, 255, 255, 0.96);
+  --glass-bg-dark: rgba(28, 28, 30, 0.85);
+  --glass-blur: saturate(180%) blur(20px);
+  --glass-blur-strong: saturate(180%) blur(36px);
+  --glass-border: 0.5px solid rgba(0, 0, 0, 0.1);
+  --glass-border-strong: 0.5px solid rgba(0, 0, 0, 0.18);
+  --glass-highlight-inset:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -0.5px 0 rgba(0, 0, 0, 0.03);
+
+  /* Hairline divider between list rows in the same card (System Gray 5). */
+  --hairline: 0.5px solid rgba(60, 60, 67, 0.18);
+
+  --shadow-soft:
+    0 0 0 0.5px rgba(0, 0, 0, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 14px -4px rgba(0, 0, 0, 0.08);
+  --shadow-card:
+    0 0 0 0.5px rgba(0, 0, 0, 0.06),
+    0 2px 4px rgba(0, 0, 0, 0.05),
+    0 12px 30px -8px rgba(0, 0, 0, 0.12);
+  --shadow-pop:
+    0 2px 4px rgba(0, 0, 0, 0.06),
+    0 16px 40px -8px rgba(0, 0, 0, 0.2);
+
+  /* macOS Settings radii: ~10–12px for cards, pill stays pill. */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 999px;
+
+  --color-text: #0d0d0e;
+  --color-text-muted: #3c3c43;
+  --color-text-subtle: #6c6c70;
+  --color-divider: rgba(60, 60, 67, 0.18);
+  /* macOS 26 system blue — slightly cooler than the legacy #007aff. Used by
+     the Slider active fill and primary CTAs. */
+  --color-accent: #0d6fff;
+  --color-accent-pressed: #0057d6;
+  --color-accent-tint: rgba(13, 111, 255, 0.12);
+  /* Text colour used by macOS 26 tinted buttons (slightly brighter than the
+     fill so the label pops on the faded background). */
+  --color-accent-text: #0088ff;
+
+  /* macOS 26 destructive (System Red). */
+  --color-destructive: #ff383c;
+  --color-destructive-tint: rgba(255, 56, 60, 0.18);
+
+  /* ---------------------------------------------------------------------
+     macOS 26 button system — radius 9.6px (closer to a "rounded rect"
+     than a full pill), 24px compact height. All variants share these
+     measurements; only fill + text colour change.
+     --------------------------------------------------------------------- */
+  --btn-radius: 9.6px;
+  --btn-height: 24px;
+  --btn-padding-x: 12px;
+  --btn-font-size: 12px;
+  --btn-font-weight: 650;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------------------------
+ * macOS 26 button kit
+ *
+ * Base shape: 9.6 px radius, 24 px height, 12 px horizontal padding, compact
+ * 12 px 650-weight type. All variants reuse the same geometry so primary,
+ * tinted, secondary and destructive labels visually align in a row.
+ *
+ * Usage:
+ *   <button class="mac-btn mac-btn-primary">   ← solid blue (default CTA)
+ *   <button class="mac-btn mac-btn-tinted">    ← faded blue · accent text
+ *   <button class="mac-btn mac-btn-secondary"> ← faded grey · dark text
+ *   <button class="mac-btn mac-btn-destructive"> ← faded red · red text
+ * --------------------------------------------------------------------- */
+
+.mac-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--btn-height);
+  padding: 0 var(--btn-padding-x);
+  border: 0;
+  border-radius: var(--btn-radius);
+  font-size: var(--btn-font-size);
+  font-weight: var(--btn-font-weight);
+  letter-spacing: -0.005em;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    transform 80ms ease;
+}
+
+.mac-btn:active {
+  transform: scale(0.97);
+}
+
+.mac-btn-primary {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.mac-btn-primary:hover {
+  background: var(--color-accent-pressed);
+}
+
+.mac-btn-tinted {
+  background: var(--color-accent-tint);
+  color: var(--color-accent-text);
+}
+
+.mac-btn-tinted:hover {
+  background: rgba(13, 111, 255, 0.18);
+}
+
+.mac-btn-secondary {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--color-text);
+}
+
+.mac-btn-secondary:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.mac-btn-destructive {
+  background: var(--color-destructive-tint);
+  color: var(--color-destructive);
+}
+
+.mac-btn-destructive:hover {
+  background: rgba(255, 56, 60, 0.25);
+}
+
+.mac-btn:disabled,
+.mac-btn[aria-disabled="true"] {
+  background: rgba(0, 0, 0, 0.04);
+  color: #bfbfbf;
+  cursor: default;
+  transform: none;
+}
+
+.map-page {
+  width: 100vw;
+  min-height: 100vh;
+  padding: 0;
+  background: #050505;
+}
+
+.map-canvas {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background: #dcebc8;
+}
+
+.map-libre-stage {
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #f7f7f4;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.map-libre-stage canvas {
+  outline: none;
+}
+
+/* MapLibre's default attribution / logo controls — hidden because we have
+   our own credits card. */
+.maplibregl-ctrl-attrib,
+.maplibregl-ctrl-logo {
+  display: none !important;
+}
+
+.map-marker-transform-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 430;
+  pointer-events: none;
+  transform-origin: 0 0;
+  will-change: transform;
+  --map-marker-inverse-scale: 1;
+  contain: layout paint style;
+}
+
+.map-marker-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+.map-marker {
+  position: absolute;
+  pointer-events: none;
+}
+
+.map-marker-content {
+  transform: scale(var(--map-marker-inverse-scale))
+    translate(
+      calc(-1px * var(--marker-anchor-x, 0)),
+      calc(-1px * var(--marker-anchor-y, 0))
+    );
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.map-marker-content button {
+  pointer-events: auto;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.map-zoom-control {
+  position: absolute;
+  z-index: 520;
+  right: 18px;
+  bottom: 76px;
+  display: grid;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  box-shadow: var(--shadow-soft), var(--glass-highlight-inset);
+}
+
+.map-zoom-control button {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-bottom: var(--hairline);
+  background: transparent;
+  color: var(--color-text);
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.map-zoom-control button:last-child {
+  border-bottom: 0;
+}
+
+.map-zoom-control button:hover {
+  background: rgba(0, 122, 255, 0.12);
+  color: var(--color-accent);
+}
+
+.map-zoom-control button:active {
+  background: rgba(0, 122, 255, 0.22);
+}
+
+.top-bar {
+  position: absolute;
+  z-index: 500;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  display: grid;
+  grid-template-columns: auto minmax(220px, 320px) auto 1fr;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.brand-title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  pointer-events: auto;
+  padding: 9px 16px;
+  border-radius: var(--radius-md);
+  background: var(--glass-bg-dark);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  color: #fff;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+  white-space: nowrap;
+  box-shadow: var(--shadow-soft);
+  transition: background 120ms ease;
+}
+
+.brand-title:hover {
+  background: rgba(28, 28, 30, 0.92);
+}
+
+.brand-title em {
+  font-style: normal;
+  font-weight: 400;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.62);
+  letter-spacing: 0.02em;
+}
+
+.update-badge {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  box-shadow: var(--shadow-soft), var(--glass-highlight-inset);
+  line-height: 1.18;
+}
+
+.update-badge span {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-subtle);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.update-badge strong {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--color-text);
+  letter-spacing: -0.005em;
+}
+
+.price-range {
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft), var(--glass-highlight-inset);
+}
+
+.detail-window,
+.price-marker {
+  background: var(--glass-bg-strong);
+  border: var(--glass-border-strong);
+  box-shadow: var(--shadow-soft);
+}
+
+/* macOS 26 search field — pill, white solid surface, composite outline shadow.
+   Focused state stacks a blue glow halo (3.5px @0.25 + 1px @0.15) per Figma. */
+.search-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
+  padding: 0 10px;
+  pointer-events: auto;
+  background: #ffffff;
+  border: 0;
+  border-radius: 999px;
+  color: var(--color-text-subtle);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 160ms ease, opacity 160ms ease;
+}
+
+.search-control-icon {
+  flex-shrink: 0;
+  color: #1a1a1a;
+  opacity: 0.9;
+}
+
+.search-control:focus-within {
+  box-shadow:
+    0 0 0 3.5px rgba(0, 122, 255, 0.25),
+    0 0 0 1px rgba(0, 122, 255, 0.15);
+}
+
+.search-control input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #1a1a1a;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+  caret-color: var(--color-accent-text, #0088ff);
+}
+
+.search-control input::placeholder {
+  color: #1a1a1a;
+  font-weight: 650;
+}
+
+/* Clear button — small grey circle with white X, matches Figma right-side glyph. */
+.search-control-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+  margin-right: -2px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #727272;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background-color 120ms ease, transform 80ms ease;
+}
+
+.search-control-clear:hover {
+  background: #5e5e5e;
+}
+
+.search-control-clear:active {
+  transform: scale(0.92);
+}
+
+.search-control[aria-disabled="true"],
+.search-control:has(input:disabled) {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Dual-handle price range slider (replaces the old 4-button price band). */
+.price-range {
+  justify-self: end;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 16px;
+  background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-radius: var(--radius-md);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 4px 16px rgba(0, 0, 0, 0.04);
+  min-height: 40px;
+}
+
+.price-range-readout {
+  display: flex;
+  flex-direction: column;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.price-range-readout strong {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+
+.price-range-readout em {
+  font-style: normal;
+  color: var(--color-text-subtle);
+  font-weight: 500;
+}
+
+.price-range-track {
+  position: relative;
+  width: 160px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+}
+
+/* Inactive (full) track — macOS 26 system gray on light backgrounds. */
+.price-range-track::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Active segment between the two handles — System Blue. */
+.price-range-fill {
+  position: absolute;
+  left: var(--price-min-pct, 0%);
+  right: calc(100% - var(--price-max-pct, 100%));
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-accent);
+  pointer-events: none;
+}
+
+.price-range-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  pointer-events: none;
+  margin: 0;
+}
+
+/*
+ * macOS 26 thumb — 20×16 capsule (rx=8) in white with a composite shadow.
+ * No border; depth is conveyed by 3 stacked drop shadows (matches the
+ * Figma "Slider" spec from the macOS 26 community kit).
+ *   1) 22px blur, 0.10 black → big diffuse halo
+ *   2) 2px  blur, 0.05 black → close penumbra
+ *   3) 0.5px blur, 0.05 black → crisp edge
+ */
+.price-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 16px;
+  border-radius: 8px;
+  background: #fff;
+  border: 0;
+  pointer-events: auto;
+  cursor: grab;
+  box-shadow:
+    0 0 0.5px rgba(0, 0, 0, 0.05),
+    0 0 2px rgba(0, 0, 0, 0.05),
+    0 0 22px rgba(0, 0, 0, 0.1);
+  transition: transform 80ms ease, box-shadow 120ms ease;
+}
+
+.price-range-input::-moz-range-thumb {
+  width: 20px;
+  height: 16px;
+  border-radius: 8px;
+  background: #fff;
+  border: 0;
+  pointer-events: auto;
+  cursor: grab;
+  box-shadow:
+    0 0 0.5px rgba(0, 0, 0, 0.05),
+    0 0 2px rgba(0, 0, 0, 0.05),
+    0 0 22px rgba(0, 0, 0, 0.1);
+}
+
+.price-range-input:active::-webkit-slider-thumb {
+  transform: scaleY(1.08);
+  cursor: grabbing;
+  box-shadow:
+    0 0 0.5px rgba(0, 0, 0, 0.08),
+    0 0 4px rgba(0, 0, 0, 0.08),
+    0 0 28px rgba(0, 0, 0, 0.14);
+}
+
+.price-range-input::-webkit-slider-runnable-track {
+  background: transparent;
+}
+
+.price-range-input::-moz-range-track {
+  background: transparent;
+}
+
+/* The max-input sits on top; if the two handles overlap, the max one wins
+   the click — flip z-index when min approaches max so users can still drag
+   the min handle back down. */
+.price-range-input-max {
+  z-index: 2;
+}
+
+.price-range-input-min {
+  z-index: 1;
+}
+
+.price-marker-shell {
+  background: transparent;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.map-marker.price-marker-shell,
+.map-marker.apartment-popup-shell,
+.map-marker.city-label-shell,
+.map-marker.district-label-shell,
+.map-marker.dong-label-shell {
+  position: absolute;
+}
+
+.price-marker {
+  display: grid;
+  width: 98px;
+  height: 36px;
+  align-content: center;
+  padding: 4px 10px;
+  text-align: center;
+  border-radius: var(--radius-sm);
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border-strong);
+  box-shadow: var(--shadow-soft);
+  pointer-events: auto;
+  transition: transform 120ms ease, background 120ms ease;
+}
+
+.price-marker:hover {
+  transform: translateY(-1px);
+  background: #ffffff;
+  box-shadow: var(--shadow-pop);
+}
+
+.price-marker-arrow {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid rgba(13, 13, 14, 0.92);
+  margin-top: -1px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.12));
+}
+
+.price-marker.selected {
+  background: var(--color-text);
+  color: #fff;
+}
+
+.price-marker.selected span,
+.price-marker.selected strong {
+  color: #fff;
+}
+
+.price-marker span {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.price-marker strong {
+  margin-top: 1px;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.apartment-popup-shell {
+  pointer-events: auto;
+}
+
+/* Apartment card — macOS 26 inset card aesthetic.
+ *
+ * Layout:
+ *   ┌───────────────────────────────┐
+ *   │ 구 동                       × │  ← caption + close
+ *   │ 단지명                        │  ← title
+ *   │ 가격 strong              tag │
+ *   │ ──────────────────────────── │  ← hairline divider
+ *   │ 위치 기준 caption             │
+ *   │ ┌─ 상세 보기 (primary btn) ─┐ │  ← mac-btn-primary at full width
+ *   │ └────────────────────────────┘ │
+ *   └───────────────────────────────┘
+ *
+ * 240 px wide, near-opaque white surface, subtle composite shadow.
+ */
+.apartment-popup {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 248px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.98);
+  -webkit-backdrop-filter: var(--glass-blur-strong);
+  backdrop-filter: var(--glass-blur-strong);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.04),
+    0 2px 4px rgba(0, 0, 0, 0.06),
+    0 18px 36px -8px rgba(0, 0, 0, 0.18);
+  color: var(--color-text);
+  padding: 14px 14px 12px;
+  pointer-events: auto;
+}
+
+/* Arrow at the bottom (points at the underlying price chip). */
+.apartment-popup::after {
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 12px;
+  height: 12px;
+  border-right: 0.5px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.98);
+  -webkit-backdrop-filter: var(--glass-blur-strong);
+  backdrop-filter: var(--glass-blur-strong);
+  content: "";
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.apartment-popup p,
+.apartment-popup h3 {
+  margin: 0;
+}
+
+/* Region caption — secondary label colour, tight tracking. */
+.apartment-popup p {
+  color: var(--color-text-subtle);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: none;
+}
+
+.apartment-popup h3 {
+  max-width: 200px;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: -2px;
+}
+
+/* Price headline. */
+.apartment-popup strong {
+  color: var(--color-text);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.018em;
+  line-height: 1;
+  margin: 2px 0 4px;
+}
+
+/* Location-source caption (e.g. "단지 윤곽 기준"). Sits above the CTA on its
+   own line as a small tinted chip — uses the macOS 26 tinted-button colour
+   pair but without affordance hover (it's read-only context). */
+.apartment-popup > span {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 3px 8px;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.apartment-popup-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-subtle);
+  padding: 0;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.apartment-popup-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-text);
+}
+
+/* "상세 보기" — macOS 26 primary button, full-width inside the card. */
+.apartment-popup-detail {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: var(--btn-height);
+  margin-top: 4px;
+  padding: 0 var(--btn-padding-x);
+  border: 0;
+  border-radius: var(--btn-radius);
+  background: var(--color-accent);
+  color: #fff;
+  font-size: var(--btn-font-size);
+  font-weight: var(--btn-font-weight);
+  letter-spacing: -0.005em;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 120ms ease, transform 80ms ease;
+}
+
+.apartment-popup-detail:hover {
+  background: var(--color-accent-pressed);
+}
+
+.apartment-popup-detail:active {
+  transform: scale(0.98);
+}
+
+.district-label-shell,
+.dong-label-shell,
+.city-label-shell {
+  background: transparent;
+  border: 0;
+  pointer-events: auto;
+}
+
+.city-label,
+.district-label,
+.dong-label {
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.city-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border-strong);
+  box-shadow: var(--shadow-soft);
+  color: var(--color-text);
+  padding: 7px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.city-label.selected,
+.district-label.selected,
+.dong-label.selected {
+  background: var(--color-text);
+  color: #fff;
+}
+
+.district-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  border-radius: var(--radius-pill);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  box-shadow: var(--shadow-soft);
+  color: var(--color-text);
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+  line-height: 1;
+  white-space: nowrap;
+  transition: transform 120ms ease, background 120ms ease;
+}
+
+.district-label:hover {
+  background: var(--glass-bg-strong);
+  transform: translateY(-1px);
+}
+
+.dong-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.45);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 0.5px solid rgba(0, 0, 0, 0.05);
+  color: var(--color-text-muted);
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.region-hint {
+  position: absolute;
+  z-index: 500;
+  left: 16px;
+  bottom: 16px;
+  max-width: 360px;
+  border-radius: var(--radius-md);
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  box-shadow: var(--shadow-soft), var(--glass-highlight-inset);
+  color: var(--color-text-muted);
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 550;
+  letter-spacing: -0.005em;
+  line-height: 1.35;
+  pointer-events: none;
+}
+
+/* macOS Settings-style navigation header — < > arrows + current title. */
+.nav-bar {
+  position: absolute;
+  z-index: 500;
+  left: 16px;
+  top: 88px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 14px 6px 6px;
+  border-radius: var(--radius-md);
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  box-shadow: var(--shadow-soft), var(--glass-highlight-inset);
+  pointer-events: auto;
+}
+
+.nav-bar-arrows {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.nav-bar-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.nav-bar-arrow:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-text);
+}
+
+.nav-bar-arrow:active:not(:disabled) {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.nav-bar-arrow:disabled {
+  color: rgba(60, 60, 67, 0.3);
+  cursor: default;
+}
+
+.nav-bar-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+  color: var(--color-text);
+  white-space: nowrap;
+  padding-right: 4px;
+}
+
+.detail-backdrop {
+  position: absolute;
+  z-index: 510;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 18px;
+  pointer-events: none;
+}
+
+.detail-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(13, 111, 255, 0.08), transparent 28%),
+    linear-gradient(180deg, #f7f7f4 0%, #ededeb 100%);
+  padding: 28px;
+}
+
+.detail-window.standalone {
+  position: relative;
+  width: min(1040px, calc(100vw - 56px));
+  max-height: none;
+  margin: 0 auto;
+}
+
+.detail-window {
+  display: grid;
+  width: min(760px, calc(100vw - 36px));
+  max-height: min(720px, calc(100vh - 36px));
+  padding: 24px;
+  overflow: hidden;
+  pointer-events: auto;
+  border-radius: 22px;
+  border: var(--glass-border-strong);
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: var(--glass-blur-strong);
+  backdrop-filter: var(--glass-blur-strong);
+  box-shadow: var(--shadow-card), var(--glass-highlight-inset);
+}
+
+.detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: var(--hairline);
+  padding-bottom: 16px;
+}
+
+.detail-head p {
+  margin: 0 0 6px;
+  color: var(--color-text-subtle);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+  line-height: 1.35;
+}
+
+.detail-head h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 30px;
+  font-weight: 780;
+  letter-spacing: 0;
+  line-height: 1.12;
+}
+
+.detail-head button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-text);
+  transition: background 120ms ease, transform 80ms ease;
+}
+
+.detail-head button:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.detail-head button:active {
+  transform: scale(0.96);
+}
+
+.detail-summary {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) 1fr;
+  gap: 18px;
+  border-bottom: var(--hairline);
+  padding: 16px 0;
+}
+
+.summary-price span,
+.detail-summary dt {
+  display: block;
+  color: var(--color-text-subtle);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+  line-height: 1.35;
+}
+
+.summary-price strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-text);
+  font-size: 30px;
+  font-weight: 780;
+  letter-spacing: 0;
+  line-height: 1.08;
+}
+
+.detail-summary dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.detail-summary dd {
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-table-wrap {
+  margin-top: 14px;
+  overflow: auto;
+  border: var(--hairline);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.detail-empty {
+  margin-top: 18px;
+  border: var(--hairline);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.62);
+  padding: 18px;
+}
+
+.detail-empty strong {
+  display: block;
+  color: var(--color-text);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.detail-empty p {
+  margin: 8px 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 560;
+  line-height: 1.55;
+}
+
+.detail-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  border-bottom: var(--hairline);
+  padding: 14px 0;
+}
+
+.detail-controls label {
+  display: grid;
+  gap: 6px;
+  min-width: 160px;
+  color: var(--color-text-subtle);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+}
+
+.detail-controls select {
+  height: 36px;
+  border: var(--hairline);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--color-text);
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 650;
+  outline: 0;
+}
+
+.detail-controls select:focus {
+  border-color: rgba(13, 111, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(13, 111, 255, 0.16);
+}
+
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.detail-table th {
+  position: sticky;
+  top: 0;
+  border-bottom: var(--hairline);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--color-text-subtle);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  padding: 10px 8px;
+  text-align: left;
+}
+
+.detail-table td {
+  border-bottom: var(--hairline);
+  color: var(--color-text);
+  padding: 11px 8px;
+}
+
+.detail-table td:last-child {
+  font-weight: 750;
+}
+
+.detail-note {
+  margin: 14px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/*
+ * Legacy small-card styles kept unused for now; detail-window is the active
+ * click target because the product requirement is a separate detail window.
+ */
+.info-card {
+  position: absolute;
+  z-index: 510;
+  right: 18px;
+  bottom: 18px;
+  width: min(330px, calc(100vw - 68px));
+  padding: 16px;
+}
+
+.info-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.info-head p {
+  margin: 0 0 5px;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.info-head h2 {
+  margin: 0;
+  color: #050505;
+  font-size: 20px;
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.18;
+}
+
+.info-head button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border: 1px solid #050505;
+  background: #fff;
+  color: #050505;
+}
+
+.price-summary {
+  margin-top: 14px;
+  border-top: 1px solid #d7dada;
+  border-bottom: 1px solid #d7dada;
+  padding: 12px 0;
+}
+
+.price-summary span {
+  display: block;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.price-summary strong {
+  display: block;
+  margin-top: 3px;
+  color: #050505;
+  font-size: 24px;
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.12;
+}
+
+.info-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.info-stats div {
+  min-width: 0;
+}
+
+.info-stats dt {
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.info-stats dd {
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: #050505;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-list {
+  display: grid;
+  gap: 0;
+  margin-top: 12px;
+  border-top: 1px solid #d7dada;
+}
+
+.recent-list div {
+  display: grid;
+  grid-template-columns: 64px 72px 1fr;
+  gap: 8px;
+  border-bottom: 1px solid #eceeee;
+  padding: 9px 0;
+  color: #4b5563;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.recent-list strong {
+  color: #050505;
+}
+
+@media (max-width: 900px) {
+  .top-bar {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+  }
+
+  .nav-bar {
+    /* When the top-bar stacks vertically it grows past 88px, so push the
+       nav header to the bottom-left next to the region-hint. */
+    top: auto;
+    left: 10px;
+    bottom: 64px;
+  }
+
+  .region-hint {
+    left: 10px;
+    bottom: 10px;
+  }
+
+  .credits-card {
+    right: 10px;
+    bottom: 10px;
+  }
+
+  .map-zoom-control {
+    right: 10px;
+    bottom: 68px;
+  }
+
+  .price-range {
+    justify-self: stretch;
+    overflow-x: auto;
+  }
+
+  .price-range-track {
+    width: 140px;
+  }
+
+  .info-card {
+    right: 10px;
+    bottom: 10px;
+    width: calc(100vw - 40px);
+    padding: 15px;
+  }
+
+  .detail-backdrop {
+    align-items: flex-end;
+    padding: 10px;
+  }
+
+  .detail-window {
+    width: calc(100vw - 20px);
+    max-height: calc(100vh - 20px);
+    padding: 15px;
+  }
+
+  .detail-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-summary dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .info-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .price-marker {
+    min-width: 88px;
+    padding: 7px 8px;
+  }
+
+  .price-marker span {
+    font-size: 10px;
+  }
+
+  .price-marker strong {
+    font-size: 13px;
+  }
+}
+
+.credits-card {
+  position: absolute;
+  z-index: 510;
+  right: 18px;
+  bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 6px 5px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  box-shadow: var(--shadow-soft), var(--glass-highlight-inset);
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--color-text-muted);
+  pointer-events: auto;
+}
+
+.credits-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text);
+  text-decoration: none;
+  transition: color 120ms ease;
+}
+
+.credits-link:hover {
+  color: var(--color-accent);
+}
+
+.credits-license {
+  color: var(--color-text-subtle);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  border-left: 0.5px solid var(--color-divider);
+  padding-left: 10px;
+}
+
+/* "문의하기" — macOS 26 primary button (extends `.mac-btn .mac-btn-primary`
+   geometry but keeps the icon + label spacing tweaked for this composition). */
+.credits-contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--btn-height);
+  padding: 0 var(--btn-padding-x);
+  border: 0;
+  border-radius: var(--btn-radius);
+  background: var(--color-accent);
+  color: #fff;
+  font-size: var(--btn-font-size);
+  font-weight: var(--btn-font-weight);
+  letter-spacing: -0.005em;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 120ms ease, transform 80ms ease;
+}
+
+.credits-contact:hover {
+  background: var(--color-accent-pressed);
+}
+
+.credits-contact:active {
+  transform: scale(0.97);
+}
+
+.contact-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(13, 13, 14, 0.28);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.contact-modal {
+  width: min(440px, 92vw);
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: var(--glass-blur-strong);
+  backdrop-filter: var(--glass-blur-strong);
+  border: var(--glass-border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card), var(--glass-highlight-inset);
+  padding: 22px 22px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.contact-modal header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.contact-modal h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+.contact-modal header button {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.06);
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.contact-modal header button:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.contact-modal label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: -0.005em;
+}
+
+.contact-modal textarea {
+  resize: vertical;
+  min-height: 96px;
+  border-radius: var(--radius-sm);
+  border: var(--glass-border-strong);
+  background: rgba(255, 255, 255, 0.7);
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 13px;
+  outline: 0;
+  color: var(--color-text);
+  transition: box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.contact-modal textarea:focus {
+  border-color: rgba(0, 122, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+}
+
+.contact-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.contact-actions button {
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  border: 0;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.contact-actions button:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.contact-actions button.primary {
+  background: var(--color-accent);
+  color: #fff;
+  font-weight: 650;
+}
+
+.contact-actions button.primary:hover {
+  background: var(--color-accent-pressed);
+}
+
+.contact-pending {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+  letter-spacing: -0.005em;
+}
+
+.contact-pending a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.contact-pending a:hover {
+  text-decoration: underline;
+}

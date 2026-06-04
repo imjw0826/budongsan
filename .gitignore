@@ -1,0 +1,16 @@
+node_modules
+dist
+.env
+.env.*
+!.env.example
+data/*
+!data/.gitkeep
+.DS_Store
+*.local
+*.tsbuildinfo
+*.log
+coverage
+.vite
+.claude/
+playwright-report
+test-results
