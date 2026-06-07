@@ -21,11 +21,10 @@
     "fetch:capital-boundaries": "node scripts/fetch-capital-boundaries.mjs",
     "fetch:trades-db": "node scripts/fetch-trades-db.mjs",
     "crawl:realtyprice": "node scripts/crawl-realtyprice-seoul.mjs",
+    "crawl:realtyprice:browser": "node scripts/crawl-realtyprice-yongsan-browser.mjs",
     "crawl:realtyprice:yongsan:browser": "node scripts/crawl-realtyprice-yongsan-browser.mjs",
     "import:realtyprice-csv": "node scripts/import-realtyprice-csv.mjs",
     "compact:db": "node scripts/compact-database.mjs",
-    "build:tiles": "node scripts/build-vector-tiles.mjs",
-    "optimize:boundaries": "node scripts/optimize-boundaries.mjs",
     "report:coordinate-quality": "node scripts/report-coordinate-quality.mjs",
     "smoke:search-filter": "node scripts/smoke-search-filter.mjs"
   },
@@ -36,10 +35,9 @@
     "concurrently": "^9.2.1",
     "express": "^5.2.1",
     "fast-xml-parser": "^5.7.3",
+    "leaflet": "^1.9.4",
     "lucide-react": "latest",
-    "maplibre-gl": "^5.24.0",
     "playwright-core": "^1.60.0",
-    "pmtiles": "^4.4.1",
     "react": "latest",
     "react-dom": "latest",
     "recharts": "latest",
@@ -49,14 +47,13 @@
   "devDependencies": {
     "@eslint/js": "latest",
     "@types/geojson": "^7946.0.16",
+    "@types/leaflet": "^1.9.20",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "eslint": "latest",
     "eslint-plugin-react-hooks": "latest",
     "eslint-plugin-react-refresh": "latest",
-    "geojson-vt": "^4.0.3",
     "globals": "latest",
-    "typescript-eslint": "latest",
-    "vt-pbf": "^3.1.3"
+    "typescript-eslint": "latest"
   }
 }

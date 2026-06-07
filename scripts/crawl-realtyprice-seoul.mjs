@@ -39,11 +39,21 @@ const args = parseArgs(process.argv.slice(2));
 const year = String(args.year ?? DEFAULT_YEAR);
 const noticeDate = String(args["notice-date"] ?? DEFAULT_NOTICE_DATE);
 const delayMs = Number(args.delay ?? 260);
+const requestTimeoutMs = Number(args["request-timeout"] ?? 20000);
 const outDir = path.resolve(String(args.out ?? `data/realtyprice/seoul-${year}-${noticeDate}`));
 const districtFilter = args.district ? String(args.district) : "";
+const districtFilters = args.districts
+  ? String(args.districts)
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+  : districtFilter
+    ? [districtFilter]
+    : [];
 const roadFilter = args.road ? String(args.road) : "";
 const limitComplexes = args["limit-complexes"] ? Number(args["limit-complexes"]) : Infinity;
 const limitUnits = args["limit-units"] ? Number(args["limit-units"]) : Infinity;
+const minHouseholds = args["min-households"] ? Number(args["min-households"]) : 0;
 const reset = Boolean(args.reset);
 
 const districtsDir = path.join(outDir, "districts");
@@ -75,6 +85,7 @@ let skippedCompleted = 0;
 let scannedDistricts = 0;
 let scannedRoads = 0;
 let scannedComplexes = 0;
+let skippedSmallComplexes = 0;
 let writtenRows = 0;
 let activeDistrictDoc = null;
 
@@ -107,13 +118,13 @@ try {
 async function crawl() {
   console.log(
     `Starting RealtyPrice road crawl: Seoul ${year}/${noticeDate}` +
-      `${districtFilter ? ` district=${districtFilter}` : ""}` +
-      `${roadFilter ? ` road=${roadFilter}` : ""}`,
+      `${districtFilters.length > 0 ? ` districts=${districtFilters.join(",")}` : ""}` +
+      `${roadFilter ? ` road=${roadFilter}` : ""}` +
+      `${minHouseholds > 0 ? ` min-households=${minHouseholds}` : ""}` +
+      ` request-timeout=${requestTimeoutMs}ms`,
   );
 
-  const districts = (await fetchRoadDistricts()).filter(
-    (item) => !districtFilter || item.name === districtFilter || item.code === districtFilter,
-  );
+  const districts = selectDistricts(await fetchRoadDistricts());
 
   for (const district of districts) {
     scannedDistricts += 1;
@@ -139,22 +150,37 @@ async function crawl() {
           if (scannedComplexes >= limitComplexes || writtenRows >= limitUnits) return;
           scannedComplexes += 1;
 
+          const buildings = await fetchBuildings({ district, initial: initial.code, road, complex });
+          const aptName = stripBunji(complex.name);
+          console.log(
+            `    [${scannedComplexes}] ${aptName} buildings=${buildings.length}`,
+          );
+
+          const buildingHouseGroups = [];
+          let householdCount = 0;
+          for (const building of buildings) {
+            const houses = await fetchHouses({ district, initial: initial.code, road, complex, building });
+            console.log(`      ${building.name}: houses=${houses.length}`);
+            buildingHouseGroups.push({ building, houses });
+            householdCount += houses.length;
+          }
+
+          if (minHouseholds > 0 && householdCount < minHouseholds) {
+            skippedSmallComplexes += 1;
+            console.log(`      skip ${aptName}: households=${householdCount} < ${minHouseholds}`);
+            await flushManifest();
+            continue;
+          }
+
           const complexDoc = upsertComplex(activeDistrictDoc, {
             district,
             initial,
             road,
             complex,
+            householdCount,
           });
 
-          const buildings = await fetchBuildings({ district, initial: initial.code, road, complex });
-          console.log(
-            `    [${scannedComplexes}] ${complexDoc.aptName} buildings=${buildings.length}`,
-          );
-
-          for (const building of buildings) {
-            const houses = await fetchHouses({ district, initial: initial.code, road, complex, building });
-            console.log(`      ${building.name}: houses=${houses.length}`);
-
+          for (const { building, houses } of buildingHouseGroups) {
             for (const house of houses) {
               if (writtenRows >= limitUnits) return;
               const houseKey = [
@@ -216,6 +242,26 @@ async function fetchRoadDistricts() {
     roadParams({ gbn: "SIGUNGU", sido: "11" }),
   );
   return districts.length > 0 ? districts : SEOUL_DISTRICTS;
+}
+
+function selectDistricts(items) {
+  if (districtFilters.length === 0) return items;
+
+  const selected = [];
+  const seen = new Set();
+  for (const filter of districtFilters) {
+    const district = items.find((item) => item.name === filter || item.code === filter);
+    if (!district) {
+      console.warn(`District filter did not match: ${filter}`);
+      continue;
+    }
+
+    const key = String(district.code || district.name);
+    if (seen.has(key)) continue;
+    selected.push(district);
+    seen.add(key);
+  }
+  return selected;
 }
 
 async function fetchRoadInitials(district) {
@@ -382,6 +428,7 @@ async function fetchJson(endpoint, params, attempt = 1) {
   let response;
   try {
     response = await fetch(url, {
+      signal: AbortSignal.timeout(requestTimeoutMs),
       headers: {
         Accept: "application/json,text/javascript,*/*;q=0.01",
         "User-Agent": "budongsan-research-crawler/0.2",
@@ -391,6 +438,9 @@ async function fetchJson(endpoint, params, attempt = 1) {
     });
   } catch (error) {
     if (attempt < 5) {
+      console.warn(
+        `Retry ${attempt}/4 ${endpoint}: ${error instanceof Error ? error.message : String(error)}`,
+      );
       await sleep(1000 * attempt);
       return fetchJson(endpoint, params, attempt + 1);
     }
@@ -399,6 +449,7 @@ async function fetchJson(endpoint, params, attempt = 1) {
 
   if (!response.ok) {
     if (attempt < 5) {
+      console.warn(`Retry ${attempt}/4 ${endpoint}: HTTP ${response.status}`);
       await sleep(1000 * attempt);
       return fetchJson(endpoint, params, attempt + 1);
     }
@@ -458,8 +509,9 @@ async function flushManifest() {
         noticeDate,
         scope: {
           sido: "서울특별시",
-          district: districtFilter || "ALL",
+          district: districtFilters.length > 0 ? districtFilters.join(",") : "ALL",
           road: roadFilter || "ALL",
+          minHouseholds: minHouseholds || null,
         },
         files: {
           districts: path.relative(process.cwd(), districtsDir),
@@ -473,6 +525,7 @@ async function flushManifest() {
           scannedComplexes,
           completedHouses,
           skippedCompleted,
+          skippedSmallComplexes,
           writtenRows,
         },
       },
@@ -495,7 +548,7 @@ function upsertRoad(doc, initial, road) {
   return target;
 }
 
-function upsertComplex(doc, { district, initial, road, complex }) {
+function upsertComplex(doc, { district, initial, road, complex, householdCount }) {
   const aptCode = String(complex.code);
   let target = doc.complexes.find((item) => item.aptCode === aptCode);
   if (!target) {
@@ -514,9 +567,12 @@ function upsertComplex(doc, { district, initial, road, complex }) {
       noticeDate: String(complex.notice_date ?? noticeDate),
       xCoord: Number(complex.x_coord ?? 0) || null,
       yCoord: Number(complex.y_coord ?? 0) || null,
+      households: householdCount ?? null,
       units: [],
     };
     doc.complexes.push(target);
+  } else if (householdCount != null && target.households == null) {
+    target.households = householdCount;
   }
   return target;
 }

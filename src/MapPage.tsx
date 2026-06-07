@@ -1,15 +1,11 @@
-// Map screen — split out of App.tsx so it can be lazy-loaded (drags
-// maplibre-gl + all layer/marker code).
+// Map screen — split out of App.tsx so it can be lazy-loaded.
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { booleanPointInPolygon, point } from "@turf/turf";
 import { ChevronLeft, ChevronRight, Mail, Search, X } from "lucide-react";
-import { MapLibreStage } from "./map/maplibre/MapLibreStage";
-import { MapLibreLayerStack } from "./map/maplibre/MapLibreLayerStack";
-import { MapLibreMarkerOverlay } from "./map/maplibre/MapLibreMarkerOverlay";
+import { LeafletMap } from "./map/leaflet/LeafletMap";
 import { mapComplexCollectionToApartments } from "./map/apartmentMapper";
 import type { MapViewport } from "./map/viewport";
-import { createOutsideSeoulMask } from "./map/layers/createOutsideSeoulMask";
 import { usePanZoomPhaseCounters } from "./map/interactions/usePanZoomPhaseCounters";
 import {
   type BoundaryFeature,
@@ -18,7 +14,6 @@ import {
 } from "./data/boundaries";
 import {
   MAX_VISIBLE_APARTMENT_LABELS,
-  MAX_VISIBLE_DONG_LABELS,
   ZOOM_APARTMENT_DETAIL,
   ZOOM_DETAIL,
   ZOOM_DISTRICT,
@@ -106,7 +101,6 @@ export function MapPage() {
   const [viewport, setViewport] = useState<MapViewport | null>(null);
   const [selectedDistrict, setSelectedDistrict] = useState<BoundaryFeature | null>(null);
   const [selectedDong, setSelectedDong] = useState<BoundaryFeature | null>(null);
-  const [hoveredDistrictId, setHoveredDistrictId] = useState<string | null>(null);
   const [flyTarget, setFlyTarget] = useState<{ center: [number, number]; zoom: number } | null>(null);
   const layerVisibility = useMemo(() => getZoomLayerVisibility(zoom), [zoom]);
   const { boundaries, complexes, boundaryError } = useMapData();
@@ -135,37 +129,13 @@ export function MapPage() {
     return null;
   }, [selectedDistrict, selectedDong]);
 
-  // Hovered district resolved to the full BoundaryFeature so we can use it
-  // as a transient `apartmentRegion` (lets price chips appear without click).
-  const hoveredDistrictFeature = useMemo<BoundaryFeature | null>(() => {
-    if (!hoveredDistrictId || !boundaries) return null;
-    return (
-      boundaries.districts.find((d) => String(d.properties.id) === hoveredDistrictId) ?? null
-    );
-  }, [hoveredDistrictId, boundaries]);
-
-  // For dong labels + dong layer filter we prefer the explicitly-selected
-  // district, but fall back to the hovered district so the user sees the
-  // structure on mouse-over too.
-  const focusedDistrict = selectedDistrict ?? hoveredDistrictFeature;
-
   const visibleDongs = useMemo(() => {
     if (!boundaries) return [];
-    if (!focusedDistrict) return [];
+    if (!selectedDistrict) return [];
     return boundaries.dongs.filter(
-      (feature) => feature.properties.district === focusedDistrict.properties.name,
+      (feature) => feature.properties.district === selectedDistrict.properties.name,
     );
-  }, [boundaries, focusedDistrict]);
-
-  const visibleDongLabels = useMemo(
-    () => visibleDongs.slice(0, MAX_VISIBLE_DONG_LABELS),
-    [visibleDongs],
-  );
-
-  const outsideSeoulMask = useMemo(() => {
-    if (!boundaries) return null;
-    return createOutsideSeoulMask(boundaries.city);
-  }, [boundaries]);
+  }, [boundaries, selectedDistrict]);
 
   const districtCenters = useMemo(() => {
     const centers = new Map<string, [number, number]>();
@@ -180,8 +150,7 @@ export function MapPage() {
     return mapComplexCollectionToApartments(complexes, districtCenters);
   }, [districtCenters, complexes]);
 
-  // Hover fallback lets users preview a district's apartments without clicking.
-  const apartmentRegion = selectedDong ?? selectedDistrict ?? hoveredDistrictFeature;
+  const apartmentRegion = selectedDong ?? selectedDistrict;
 
   const apartments = useMemo(() => {
     if (!apartmentRegion || !layerVisibility.showApartmentLabels || !viewport) return [];
@@ -216,7 +185,6 @@ export function MapPage() {
   const onDistrictClick = useCallback((feature: BoundaryFeature) => {
     setSelectedDistrict(feature);
     setSelectedDong(null);
-    setHoveredDistrictId(null);
     setFlyTarget({ center: feature.properties.center, zoom: ZOOM_DONG });
   }, []);
 
@@ -228,7 +196,6 @@ export function MapPage() {
   const onBackToDistricts = () => {
     setSelectedDistrict(null);
     setSelectedDong(null);
-    setHoveredDistrictId(null);
     setFlyTarget({ center: SEOUL_CENTER, zoom: 11 });
   };
 
@@ -242,51 +209,26 @@ export function MapPage() {
   return (
     <main className="map-page">
       <section className="map-canvas" aria-label="아파트 가격 지도">
-        <MapLibreStage
-          zoomLevel={11}
+        <LeafletMap
+          districts={boundaries?.districts ?? null}
+          dongs={visibleDongs}
+          selectedDistrictId={selectedDistrict?.properties.id ?? null}
+          selectedDongId={selectedDong?.properties.id ?? null}
+          apartments={apartments}
           flyTarget={flyTarget}
-          onViewportChange={setViewport}
+          onDistrictClick={onDistrictClick}
+          onDongClick={onDongClick}
+          onApartmentSelect={(complex) => {
+            const detailUrl = `/complex/${encodeURIComponent(complex.id)}`;
+            const detailWindow = window.open(detailUrl, "_blank");
+            if (!detailWindow) window.location.assign(detailUrl);
+          }}
+          onViewportChange={(vp) => {
+            setViewport(vp);
+            phaseCounters.increment("idle");
+          }}
           onZoomChange={setZoom}
-          onPanZoomPhase={phaseCounters.increment}
-        >
-          <MapLibreLayerStack
-            layerVisibility={layerVisibility}
-            outsideSeoulMask={outsideSeoulMask}
-            selectedDistrictId={selectedDistrict?.properties.id ?? null}
-            selectedDongId={selectedDong?.properties.id ?? null}
-            selectedDistrictName={focusedDistrict?.properties.name ?? null}
-            hoveredDistrictId={hoveredDistrictId}
-            onDistrictClick={(id) => {
-              const feature = boundaries?.districts.find(
-                (d) => String(d.properties.id) === id,
-              );
-              if (feature) onDistrictClick(feature);
-            }}
-            onDistrictHover={setHoveredDistrictId}
-            onDongClick={(id) => {
-              const feature = visibleDongs.find(
-                (d) => String(d.properties.id) === id,
-              );
-              if (feature) onDongClick(feature);
-            }}
-          />
-          <MapLibreMarkerOverlay
-            layerVisibility={layerVisibility}
-            districts={boundaries?.districts ?? null}
-            selectedDistrict={selectedDistrict}
-            selectedDong={selectedDong}
-            visibleDongLabels={visibleDongLabels}
-            apartmentRegion={apartmentRegion}
-            apartments={apartments}
-            onDistrictClick={onDistrictClick}
-            onDongClick={onDongClick}
-            onApartmentSelect={(complex) => {
-              const detailUrl = `/complex/${encodeURIComponent(complex.id)}`;
-              const detailWindow = window.open(detailUrl, "_blank");
-              if (!detailWindow) window.location.assign(detailUrl);
-            }}
-          />
-        </MapLibreStage>
+        />
 
         <header className="top-bar">
           <a

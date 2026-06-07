@@ -1,15 +1,14 @@
 // Static boundary data loaders.
 //
-// Boundaries, Han river and pre-ranked complex points are loaded once on
-// startup (used for click handlers, mask geometry, and HTML price chip
-// markers). Every other visual layer (parks / roads-minor / buildings /
-// dongs etc.) is served as vector tiles from `/tiles/{z}/{x}/{y}.pbf` —
-// see scripts/build-vector-tiles.mjs.
+// We only ship 자치구 (districts) and 행정동 (dongs) GeoJSON — every other
+// visual layer (roads, buildings, parks, river, neighbouring cities) comes
+// for free from CARTO's Positron raster tiles.
+// Complex points populate the HTML price chip markers.
 
 import type { Feature, FeatureCollection, MultiPolygon, Polygon } from "geojson";
 export type { FeatureCollection };
 
-export type BoundaryType = "city" | "district" | "dong";
+export type BoundaryType = "district" | "dong";
 
 export type BoundaryProperties = {
   id: string;
@@ -31,10 +30,8 @@ export type BoundarySelection = {
 };
 
 export type BoundarySet = {
-  city: BoundaryFeature[];
   districts: BoundaryFeature[];
   dongs: BoundaryFeature[];
-  neighbors: BoundaryFeature[];
 };
 
 async function loadFeatureCollection(url: string, level: BoundaryType): Promise<BoundaryFeature[]> {
@@ -45,23 +42,15 @@ async function loadFeatureCollection(url: string, level: BoundaryType): Promise<
 }
 
 export async function loadBoundaries(): Promise<BoundarySet> {
-  const [city, districts, dongs, neighbors] = await Promise.all([
-    loadFeatureCollection("/boundaries/seoul-city.geojson", "city"),
+  const [districts, dongs] = await Promise.all([
     loadFeatureCollection("/boundaries/seoul-sigg.geojson", "district"),
     loadFeatureCollection("/boundaries/seoul-dong.geojson", "dong"),
-    loadFeatureCollection("/boundaries/capital-sigg.geojson", "district"),
   ]);
-  return { city, districts, dongs, neighbors };
+  return { districts, dongs };
 }
 
 export function centerOf(feature: BoundaryFeature): [number, number] {
   return feature.properties.center;
-}
-
-export async function loadHanRiver(): Promise<FeatureCollection<Polygon | MultiPolygon>> {
-  const response = await fetch("/boundaries/han-river.geojson");
-  if (!response.ok) throw new Error(`Failed to load Han river: ${response.status}`);
-  return response.json();
 }
 
 /** Pre-ranked complex points (used to populate price chip markers). */

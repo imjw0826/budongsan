@@ -189,7 +189,8 @@ button {
   background: #dcebc8;
 }
 
-.map-libre-stage {
+/* Leaflet stage — fills the .map-canvas section. */
+.leaflet-stage {
   position: absolute;
   inset: 0;
   width: 100vw;
@@ -199,15 +200,22 @@ button {
   user-select: none;
 }
 
-.map-libre-stage canvas {
-  outline: none;
+/* CARTO attribution stays visible (license requirement) but toned down to
+   match the white surface. */
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.82) !important;
+  color: #6a6a6a !important;
+  font-size: 10px !important;
+  padding: 2px 6px !important;
+}
+.leaflet-control-attribution a {
+  color: #2a6ad8 !important;
 }
 
-/* MapLibre's default attribution / logo controls — hidden because we have
-   our own credits card. */
-.maplibregl-ctrl-attrib,
-.maplibregl-ctrl-logo {
-  display: none !important;
+/* Suppress Leaflet's focus ring on the map container — we already use
+   pointer interactions and have our own overlay controls. */
+.leaflet-container:focus-visible {
+  outline: none;
 }
 
 .map-marker-transform-layer {
