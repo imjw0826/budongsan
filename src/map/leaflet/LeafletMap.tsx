@@ -69,13 +69,21 @@ export function LeafletMap({
     onViewportChange,
     onZoomChange,
   });
-  cb.current = {
+  useEffect(() => {
+    cb.current = {
+      onDistrictClick,
+      onDongClick,
+      onApartmentSelect,
+      onViewportChange,
+      onZoomChange,
+    };
+  }, [
+    onApartmentSelect,
     onDistrictClick,
     onDongClick,
-    onApartmentSelect,
     onViewportChange,
     onZoomChange,
-  };
+  ]);
 
   // ---- Init map once ----
   useEffect(() => {
@@ -222,11 +230,12 @@ export function LeafletMap({
         </button>
         <span class="price-marker-arrow"></span>
       `;
+      // 칩 36px + 화살표 5px = 41px. 화살표 끝점이 박스 하단 중앙 = 앵커.
       const icon = L.divIcon({
         className: "price-marker-shell",
         html,
-        iconSize: [96, 40],
-        iconAnchor: [48, 40],
+        iconSize: [98, 41],
+        iconAnchor: [49, 41],
       });
       const marker = L.marker([c.lat, c.lng], {
         icon,

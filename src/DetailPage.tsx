@@ -1,8 +1,9 @@
 // Per-complex detail page (/complex/:id) — split out of App.tsx so it can
 // be lazy-loaded without dragging maplibre-gl into its bundle chunk.
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
+import { withBase } from "./lib/base";
 
 type ApartmentListItem = {
   id: string;
@@ -31,6 +32,7 @@ type ApartmentDetail = ApartmentListItem & {
   mainArea: string;
   minPrice: number;
   maxPrice: number;
+  priceSource?: string;
   prices: PriceRow[];
 };
 
@@ -46,8 +48,23 @@ function closeDetailWindow() {
       window.history.back();
       return;
     }
-    window.location.assign("/");
+    window.location.assign(withBase(""));
   }, 120);
+}
+
+// "101동"·"가동"·"경희궁의 아침 4단지" 가 섞여도 숫자 우선으로 자연스럽게 정렬
+function compareBuilding(a: string, b: string) {
+  const na = parseInt(a, 10);
+  const nb = parseInt(b, 10);
+  if (Number.isFinite(na) && Number.isFinite(nb) && na !== nb) return na - nb;
+  return a.localeCompare(b, "ko");
+}
+
+function compareHo(a?: string | null, b?: string | null) {
+  const na = parseInt(a ?? "", 10);
+  const nb = parseInt(b ?? "", 10);
+  if (Number.isFinite(na) && Number.isFinite(nb) && na !== nb) return na - nb;
+  return String(a ?? "").localeCompare(String(b ?? ""), "ko");
 }
 
 function PublicPriceDetail({ complex }: { complex: ApartmentDetail }) {
@@ -56,19 +73,53 @@ function PublicPriceDetail({ complex }: { complex: ApartmentDetail }) {
   const [ho, setHo] = useState("all");
   const hasRows = complex.prices.length > 0;
   const hasHo = complex.prices.some((row) => row.ho);
-  const buildings = Array.from(new Set(complex.prices.map((row) => row.building)));
-  const floors = Array.from(new Set(complex.prices.map((row) => row.floor))).sort((a, b) => a - b);
-  const hos = hasHo
-    ? Array.from(new Set(complex.prices.map((row) => row.ho).filter(Boolean) as string[])).sort()
-    : [];
-  const filteredRows = complex.prices.filter((row) => {
-    if (building !== "all" && row.building !== building) return false;
-    if (floor !== "all" && row.floor !== Number(floor)) return false;
-    if (hasHo && ho !== "all" && row.ho !== ho) return false;
-    return true;
-  });
-  const representative = complex.prices[0];
-  const sourceLabel = !hasRows ? "상세 가격 없음" : hasHo ? "가격 · 호별" : "실거래가";
+
+  const sortedPrices = useMemo(
+    () =>
+      [...complex.prices].sort(
+        (a, b) =>
+          compareBuilding(a.building, b.building) ||
+          b.floor - a.floor ||
+          compareHo(a.ho, b.ho) ||
+          a.area - b.area,
+      ),
+    [complex.prices],
+  );
+
+  // 동 → 층 → 호 순서로 좁혀가는 캐스케이드: 상위 선택이 하위 옵션을 결정한다.
+  const buildings = useMemo(
+    () => Array.from(new Set(sortedPrices.map((row) => row.building))).sort(compareBuilding),
+    [sortedPrices],
+  );
+  const buildingRows = useMemo(
+    () => (building === "all" ? sortedPrices : sortedPrices.filter((row) => row.building === building)),
+    [sortedPrices, building],
+  );
+  const floors = useMemo(
+    () => Array.from(new Set(buildingRows.map((row) => row.floor))).sort((a, b) => a - b),
+    [buildingRows],
+  );
+  const floorRows = useMemo(
+    () => (floor === "all" ? buildingRows : buildingRows.filter((row) => row.floor === Number(floor))),
+    [buildingRows, floor],
+  );
+  const hos = useMemo(
+    () =>
+      hasHo
+        ? Array.from(new Set(floorRows.map((row) => row.ho).filter(Boolean) as string[])).sort(compareHo)
+        : [],
+    [floorRows, hasHo],
+  );
+  const filteredRows = hasHo && ho !== "all" ? floorRows.filter((row) => row.ho === ho) : floorRows;
+
+  const representative = sortedPrices[0];
+  const sourceLabel = !hasRows
+    ? "상세 가격 없음"
+    : complex.priceSource === "vworld-file"
+      ? "공시가격 · 동/층/호별"
+      : hasHo
+        ? "가격 · 호별"
+        : "가격 정보";
 
   return (
     <main className="detail-page">
@@ -117,11 +168,35 @@ function PublicPriceDetail({ complex }: { complex: ApartmentDetail }) {
             <div className="detail-controls">
               <label>
                 동
-                <select value={building} onChange={(event) => setBuilding(event.target.value)}>
+                <select
+                  value={building}
+                  onChange={(event) => {
+                    setBuilding(event.target.value);
+                    setFloor("all");
+                    setHo("all");
+                  }}
+                >
                   <option value="all">전체</option>
                   {buildings.map((item) => (
                     <option key={item} value={item}>
                       {item}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                층
+                <select
+                  value={floor}
+                  onChange={(event) => {
+                    setFloor(event.target.value);
+                    setHo("all");
+                  }}
+                >
+                  <option value="all">전체</option>
+                  {floors.map((item) => (
+                    <option key={item} value={item}>
+                      {item}층
                     </option>
                   ))}
                 </select>
@@ -133,23 +208,12 @@ function PublicPriceDetail({ complex }: { complex: ApartmentDetail }) {
                     <option value="all">전체</option>
                     {hos.map((item) => (
                       <option key={item} value={item}>
-                        {item}
+                        {item}호
                       </option>
                     ))}
                   </select>
                 </label>
               )}
-              <label>
-                층
-                <select value={floor} onChange={(event) => setFloor(event.target.value)}>
-                  <option value="all">전체</option>
-                  {floors.map((item) => (
-                    <option key={item} value={item}>
-                      {item}층
-                    </option>
-                  ))}
-                </select>
-              </label>
             </div>
 
             <div className="detail-table-wrap">
@@ -195,7 +259,7 @@ export function DetailPage({ id }: { id: string }) {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/apartments/${encodeURIComponent(id)}`)
+    fetch(withBase(`api/apartments/${encodeURIComponent(id)}.json`))
       .then((response) => {
         if (!response.ok) throw new Error("not_found");
         return response.json() as Promise<ApartmentDetail>;

@@ -33,8 +33,8 @@ const dongIndex = dongGeo.features.map((feature) => ({
   bbox: featureBbox(feature),
 }));
 
-const complexMatchKeySql =
-  "c.district || '|' || c.neighborhood || '|' || lower(replace(replace(c.name, ' ', ''), '아파트', ''))";
+const displayedAvgPriceSql =
+  "COALESCE(vp.avg_price, p.avg_price, (c.min_price + c.max_price) / 2.0)";
 
 function normalizeRegionName(value) {
   return String(value ?? "").replace(/\s+/g, "");
@@ -91,22 +91,32 @@ function listComplexesIn(entry, extra = {}) {
         c.households,
         c.buildings,
         c.main_area AS mainArea,
-        COALESCE(r.min_price_won / 100000000.0, p.min_price, c.min_price) AS minPrice,
-        COALESCE(r.max_price_won / 100000000.0, p.max_price, c.max_price) AS maxPrice,
-        COALESCE(r.avg_price_won / 100000000.0, p.avg_price, (c.min_price + c.max_price) / 2.0) AS avgPrice,
-        COALESCE(r.unit_count, p.trade_count, 0) AS tradeCount,
-        r.latest_notice_date AS noticeDate,
-        CASE WHEN r.match_key IS NOT NULL THEN 'data.go.kr-file' ELSE 'legacy' END AS priceSource
+        COALESCE(vp.min_price, p.min_price, c.min_price) AS minPrice,
+        COALESCE(vp.max_price, p.max_price, c.max_price) AS maxPrice,
+        ${displayedAvgPriceSql} AS avgPrice,
+        COALESCE(vp.price_count, p.price_count, 0) AS tradeCount,
+        vp.latest_update AS noticeDate,
+        CASE WHEN vp.price_count > 0 THEN 'vworld-file' ELSE 'legacy' END AS priceSource
       FROM apartment_complexes c
-      LEFT JOIN realtyprice_complex_summary r
-        ON r.match_key = ${complexMatchKeySql}
       LEFT JOIN (
         SELECT complex_id,
                MIN(price) AS min_price,
                MAX(price) AS max_price,
                AVG(price) AS avg_price,
-               COUNT(*) AS trade_count
+               COUNT(*) AS price_count,
+               MAX(COALESCE(updated_at, year)) AS latest_update
         FROM official_prices
+        WHERE source = 'vworld-file' AND price > 0
+        GROUP BY complex_id
+      ) vp ON vp.complex_id = c.id
+      LEFT JOIN (
+        SELECT complex_id,
+               MIN(price) AS min_price,
+               MAX(price) AS max_price,
+               AVG(price) AS avg_price,
+               COUNT(*) AS price_count
+        FROM official_prices
+        WHERE source <> 'vworld-file'
         GROUP BY complex_id
       ) p ON p.complex_id = c.id
       WHERE c.lat BETWEEN @minLat AND @maxLat
@@ -114,9 +124,9 @@ function listComplexesIn(entry, extra = {}) {
         AND (@query = '' OR c.name LIKE @like OR c.district LIKE @like OR c.neighborhood LIKE @like)
         AND (
           @band = 'all'
-          OR (@band = 'under8' AND COALESCE(r.avg_price_won / 100000000.0, p.avg_price, (c.min_price + c.max_price) / 2.0) < 8)
-          OR (@band = '8to15' AND COALESCE(r.avg_price_won / 100000000.0, p.avg_price, (c.min_price + c.max_price) / 2.0) >= 8 AND COALESCE(r.avg_price_won / 100000000.0, p.avg_price, (c.min_price + c.max_price) / 2.0) < 15)
-          OR (@band = 'over15' AND COALESCE(r.avg_price_won / 100000000.0, p.avg_price, (c.min_price + c.max_price) / 2.0) >= 15)
+          OR (@band = 'under8' AND ${displayedAvgPriceSql} < 8)
+          OR (@band = '8to15' AND ${displayedAvgPriceSql} >= 8 AND ${displayedAvgPriceSql} < 15)
+          OR (@band = 'over15' AND ${displayedAvgPriceSql} >= 15)
         )
       ORDER BY avgPrice DESC
       LIMIT 1500
@@ -222,13 +232,18 @@ app.get("/api/apartments/all", (_req, res) => {
         c.neighborhood,
         c.lat,
         c.lng,
-        COALESCE(r.avg_price_won / 100000000.0, p.avg_price, (c.min_price + c.max_price) / 2.0) AS avgPrice
+        ${displayedAvgPriceSql} AS avgPrice
       FROM apartment_complexes c
-      LEFT JOIN realtyprice_complex_summary r
-        ON r.match_key = ${complexMatchKeySql}
       LEFT JOIN (
         SELECT complex_id, AVG(price) AS avg_price
         FROM official_prices
+        WHERE source = 'vworld-file' AND price > 0
+        GROUP BY complex_id
+      ) vp ON vp.complex_id = c.id
+      LEFT JOIN (
+        SELECT complex_id, AVG(price) AS avg_price
+        FROM official_prices
+        WHERE source <> 'vworld-file'
         GROUP BY complex_id
       ) p ON p.complex_id = c.id
       WHERE c.lat > 0 AND c.lng > 0
@@ -238,23 +253,25 @@ app.get("/api/apartments/all", (_req, res) => {
   res.json({ items: rows });
 });
 
-app.get("/api/meta", (_req, res) => {
+// 정적 배포(GitHub Pages)와 같은 경로를 dev 서버에서도 제공한다:
+// 프론트는 항상 /api/meta.json, /api/apartments/{id}.json 을 호출한다.
+app.get(["/api/meta", "/api/meta.json"], (_req, res) => {
   const row = db
     .prepare(
       `
       SELECT
-        (SELECT MAX(latest_notice_date) FROM realtyprice_complex_summary) AS latestNotice,
-        (SELECT SUM(unit_count) FROM realtyprice_complex_summary) AS unitCount
+        (SELECT MAX(COALESCE(updated_at, year)) FROM official_prices WHERE source = 'vworld-file') AS vworldLatest,
+        (SELECT COUNT(*) FROM official_prices WHERE source = 'vworld-file') AS vworldUnitCount
     `,
     )
     .get();
-  const lastUpdated = row?.latestNotice
-    ? String(row.latestNotice).replace(".", "-")
+  const lastUpdated = row?.vworldLatest
+    ? String(row.vworldLatest).slice(0, 10)
     : new Date().toISOString().slice(0, 10);
   res.json({
     lastUpdated,
-    source: "국토교통부 주택 가격 정보",
-    unitCount: row?.unitCount ?? 0,
+    source: row?.vworldUnitCount > 0 ? "VWorld 공동주택가격정보" : "국토교통부 주택 가격 정보",
+    unitCount: row?.vworldUnitCount ?? 0,
   });
 });
 
@@ -274,6 +291,7 @@ app.get("/api/regions/at", (req, res) => {
 });
 
 app.get("/api/apartments/:id", (req, res) => {
+  const complexId = req.params.id.replace(/\.json$/, "");
   const complex = db
     .prepare(
       `
@@ -288,23 +306,31 @@ app.get("/api/apartments/:id", (req, res) => {
         c.households,
         c.buildings,
         c.main_area AS mainArea,
-        COALESCE(r.min_price_won / 100000000.0, p.min_price, c.min_price) AS minPrice,
-        COALESCE(r.max_price_won / 100000000.0, p.max_price, c.max_price) AS maxPrice,
-        r.match_key AS realtypriceMatchKey,
-        r.unit_count AS realtypriceUnitCount,
-        r.latest_notice_date AS noticeDate
+        COALESCE(vp.min_price, p.min_price, c.min_price) AS minPrice,
+        COALESCE(vp.max_price, p.max_price, c.max_price) AS maxPrice,
+        CASE WHEN vp.price_count > 0 THEN 'vworld-file' ELSE 'legacy' END AS priceSource,
+        vp.latest_update AS noticeDate
       FROM apartment_complexes c
-      LEFT JOIN realtyprice_complex_summary r
-        ON r.match_key = ${complexMatchKeySql}
+      LEFT JOIN (
+        SELECT complex_id,
+               MIN(price) AS min_price,
+               MAX(price) AS max_price,
+               COUNT(*) AS price_count,
+               MAX(COALESCE(updated_at, year)) AS latest_update
+        FROM official_prices
+        WHERE source = 'vworld-file' AND price > 0
+        GROUP BY complex_id
+      ) vp ON vp.complex_id = c.id
       LEFT JOIN (
         SELECT complex_id, MIN(price) AS min_price, MAX(price) AS max_price
         FROM official_prices
+        WHERE source <> 'vworld-file'
         GROUP BY complex_id
       ) p ON p.complex_id = c.id
       WHERE c.id = ?
     `,
     )
-    .get(req.params.id);
+    .get(complexId);
 
   if (!complex) {
     res.status(404).json({ error: "not_found" });
@@ -312,25 +338,25 @@ app.get("/api/apartments/:id", (req, res) => {
   }
 
   let prices = [];
-  if (complex.realtypriceMatchKey) {
+  if (complex.priceSource === "vworld-file") {
     prices = db
       .prepare(
         `
         SELECT
           id,
-          COALESCE(notice_date, year) AS year,
-          building_name AS building,
-          ho_name AS ho,
-          COALESCE(floor, 0) AS floor,
-          private_area AS area,
-          price_won / 100000000.0 AS price
-        FROM realtyprice_units
-        WHERE source = 'data.go.kr-file'
-          AND district || '|' || legal_dong || '|' || lower(replace(replace(apt_name, ' ', ''), '아파트', '')) = ?
-        ORDER BY building_name ASC, floor DESC, ho_name ASC, private_area ASC
+          year,
+          building,
+          ho,
+          floor,
+          area,
+          COALESCE(price_won / 100000000.0, price) AS price
+        FROM official_prices
+        WHERE complex_id = ?
+          AND source = 'vworld-file'
+        ORDER BY building ASC, floor DESC, ho ASC, area ASC
       `,
       )
-      .all(complex.realtypriceMatchKey);
+      .all(complexId);
   }
 
   if (prices.length === 0) {
@@ -340,10 +366,11 @@ app.get("/api/apartments/:id", (req, res) => {
         SELECT id, year, building, NULL AS ho, floor, area, price
         FROM official_prices
         WHERE complex_id = ?
+          AND source <> 'vworld-file'
         ORDER BY building ASC, floor DESC, area ASC
       `,
       )
-      .all(req.params.id);
+      .all(complexId);
   }
 
   res.json({ ...complex, prices });

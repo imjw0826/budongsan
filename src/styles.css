@@ -623,10 +623,28 @@ button {
 .price-marker-shell {
   background: transparent;
   border: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   pointer-events: none;
+}
+
+/* 칩·화살표를 앵커 기준 절대 배치 — 화살표 끝점이 아이콘 박스 하단 중앙
+   (= 마커 좌표) 에 고정되어 줌 레벨과 무관하게 항상 같은 지점을 가리킨다. */
+.price-marker-shell .price-marker {
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  transform: translateX(-50%);
+}
+
+.price-marker-shell .price-marker:hover {
+  transform: translateX(-50%) translateY(-1px);
+}
+
+.price-marker-shell .price-marker-arrow {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  margin-top: 0;
 }
 
 .map-marker.price-marker-shell,

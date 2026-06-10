@@ -1,11 +1,34 @@
-# 배포 가이드 — Oracle Cloud Always Free
+# 배포 가이드
+
+## ✅ 현재 배포: GitHub Pages (서버리스, 무료)
+
+**라이브 URL**: https://imjw0826.github.io/budongsan/
+
+데이터가 읽기 전용(반기 갱신)이라 서버 없이 정적 사이트로 배포한다.
+단지별 가격 JSON 3,367개(~157 MB)를 빌드 시 미리 생성해서 gh-pages 브랜치로 푸시.
+
+```bash
+npm run deploy   # build:pages(정적 export 포함) + gh-pages 브랜치 푸시
+```
+
+구성 요소:
+- `scripts/export-static-api.mjs` — SQLite → `dist/api/meta.json` + `dist/api/apartments/{id}.json`
+- `vite.config.ts` — `DEPLOY_BASE=/budongsan/` 시 base 경로 적용
+- `dist/404.html` — SPA 딥링크(`/complex/:id`) fallback (index.html 복사본)
+- Express(`server/api.mjs`)는 **로컬 개발 전용**으로만 사용
+
+데이터 갱신 후 재배포: `npm run import:vworld -- --shp --csv && npm run build:complexes && npm run deploy`
+
+---
+
+# (대안) Oracle Cloud Always Free — 서버 호스팅이 필요해질 때
 
 > **목표**: 24/7 무중단, 영구 0원, 면접 포트폴리오 URL 1개.
 > **하드웨어**: Oracle Cloud Ampere ARM (2 OCPU / 12 GB RAM / 50 GB SSD).
 > **소요 시간**: 가입 + 셋업 약 60~90분 (SQLite 업로드 시간 제외).
 >
 > **현재 스택**: React SPA + Leaflet 1.9.4 + CARTO Positron 래스터 타일 (외부).
-> 자체 호스팅 데이터: `data/budongsan.sqlite` (~2.6 GB) + `public/boundaries/` (1.4 MB, 자치구·동·아파트 위치만). 도로·건물·공원·강 등 배경 지도는 전부 CARTO 가 PNG 로 제공 — **서버 디스크가 들고 있을 필요 없음**.
+> 자체 호스팅 데이터: `data/budongsan.sqlite` (~330 MB) + `public/boundaries/` (1.4 MB, 자치구·동·아파트 위치만). 도로·건물·공원·강 등 배경 지도는 전부 CARTO 가 PNG 로 제공 — **서버 디스크가 들고 있을 필요 없음**.
 >
 > ✅ 이전(MapLibre+자체 MVT) 대비 변화:
 > - 클라이언트 번들 1.22 MB → **360 KB** (gzip 110 KB), 첫 로딩 빠름
@@ -127,12 +150,12 @@ npm run build           # dist/ 생성 (~1.9 MB, 200~300 ms)
 mkdir -p data
 ```
 
-> 💡 빌드 산출물이 작으므로 VM 부트 디스크 47 GB 의 99% 이상이 SQLite 한 파일에 들어갑니다. CARTO 가 타일을 대신 제공하기 때문에 `public/tiles/` 같은 대용량 디렉토리를 서버에 둘 필요가 없어요.
+> 💡 빌드 산출물과 SQLite(~330 MB)를 합쳐도 1 GB 미만이라 VM 부트 디스크에 여유가 큽니다. CARTO 가 타일을 대신 제공하기 때문에 `public/tiles/` 같은 대용량 디렉토리를 서버에 둘 필요가 없어요.
 
 ### 5b. 로컬에서 SQLite 업로드
 
 ```bash
-# 본인 맥에서 — 2.6 GB, 회선 따라 10~40분 소요
+# 본인 맥에서 — ~330 MB, 회선 따라 1~5분 소요
 rsync -avP --partial data/budongsan.sqlite \
   ubuntu@132.226.123.45:~/budongsan/data/
 ```

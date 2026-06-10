@@ -37,51 +37,22 @@ export function migrate() {
       price REAL NOT NULL
     );
 
-    CREATE TABLE IF NOT EXISTS realtyprice_units (
-      id TEXT PRIMARY KEY,
-      year TEXT,
-      notice_date TEXT,
-      notice_date_raw TEXT,
-      bjd_code TEXT,
-      sido TEXT,
-      district TEXT,
-      legal_dong TEXT,
-      apt_name TEXT,
-      apt_code TEXT,
-      building_name TEXT,
-      building_code TEXT,
-      ho_name TEXT,
-      ho_code TEXT,
-      floor INTEGER,
-      private_area REAL,
-      price_won INTEGER,
-      road_address TEXT,
-      lot_address TEXT,
-      source TEXT NOT NULL DEFAULT 'realtyprice-crawler',
-      crawled_at TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS realtyprice_complex_summary (
-      match_key TEXT PRIMARY KEY,
-      district TEXT NOT NULL,
-      legal_dong TEXT NOT NULL,
-      apt_name TEXT NOT NULL,
-      unit_count INTEGER NOT NULL,
-      min_price_won INTEGER,
-      max_price_won INTEGER,
-      avg_price_won REAL,
-      min_area REAL,
-      max_area REAL,
-      latest_notice_date TEXT,
-      apt_code TEXT
-    );
-
   `);
 
   for (const statement of [
     "ALTER TABLE apartment_complexes ADD COLUMN bjd_code TEXT",
     "ALTER TABLE apartment_complexes ADD COLUMN geocode_source TEXT",
     "ALTER TABLE apartment_complexes ADD COLUMN geocode_score REAL",
+    "ALTER TABLE apartment_complexes ADD COLUMN vworld_pnu TEXT",
+    "ALTER TABLE apartment_complexes ADD COLUMN vworld_name TEXT",
+    "ALTER TABLE apartment_complexes ADD COLUMN vworld_aphus_code TEXT",
+    "ALTER TABLE apartment_complexes ADD COLUMN vworld_stdr_year TEXT",
+    "ALTER TABLE official_prices ADD COLUMN ho TEXT",
+    "ALTER TABLE official_prices ADD COLUMN price_won INTEGER",
+    "ALTER TABLE official_prices ADD COLUMN source TEXT NOT NULL DEFAULT 'legacy'",
+    "ALTER TABLE official_prices ADD COLUMN source_pnu TEXT",
+    "ALTER TABLE official_prices ADD COLUMN source_aphus_code TEXT",
+    "ALTER TABLE official_prices ADD COLUMN updated_at TEXT",
   ]) {
     try {
       db.exec(statement);
@@ -93,13 +64,10 @@ export function migrate() {
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_complexes_lat_lng ON apartment_complexes(lat, lng);
     CREATE INDEX IF NOT EXISTS idx_complexes_bjd_code ON apartment_complexes(bjd_code);
+    CREATE INDEX IF NOT EXISTS idx_complexes_vworld_pnu ON apartment_complexes(vworld_pnu);
     CREATE INDEX IF NOT EXISTS idx_complexes_district_neighborhood ON apartment_complexes(district, neighborhood);
     CREATE INDEX IF NOT EXISTS idx_prices_complex ON official_prices(complex_id);
-    CREATE INDEX IF NOT EXISTS idx_realtyprice_addr ON realtyprice_units(district, legal_dong, apt_name);
-    CREATE INDEX IF NOT EXISTS idx_realtyprice_codes ON realtyprice_units(apt_code, building_code, ho_code);
-    CREATE INDEX IF NOT EXISTS idx_realtyprice_bjd ON realtyprice_units(bjd_code);
-    CREATE INDEX IF NOT EXISTS idx_realtyprice_floor ON realtyprice_units(apt_code, building_name, floor);
-    CREATE INDEX IF NOT EXISTS idx_realtyprice_source ON realtyprice_units(source);
-    CREATE INDEX IF NOT EXISTS idx_realtyprice_summary_region ON realtyprice_complex_summary(district, legal_dong);
+    CREATE INDEX IF NOT EXISTS idx_prices_source ON official_prices(source, year);
+    CREATE INDEX IF NOT EXISTS idx_prices_source_pnu ON official_prices(source_pnu);
   `);
 }

@@ -21,6 +21,7 @@ import {
   getZoomLayerVisibility,
 } from "./map/constants";
 import { useMapData } from "./map/data/useMapData";
+import { withBase } from "./lib/base";
 import { usePerfLogger } from "./map/perf/usePerfLogger";
 import type { ApartmentMapItem } from "./map/types";
 
@@ -111,7 +112,7 @@ export function MapPage() {
   const phaseCounters = usePanZoomPhaseCounters();
 
   useEffect(() => {
-    fetch("/api/meta")
+    fetch(withBase("api/meta.json"))
       .then((response) => (response.ok ? response.json() : null))
       .then((data: { lastUpdated?: string } | null) => {
         if (data?.lastUpdated) setUpdateLabel(data.lastUpdated);
@@ -219,7 +220,7 @@ export function MapPage() {
           onDistrictClick={onDistrictClick}
           onDongClick={onDongClick}
           onApartmentSelect={(complex) => {
-            const detailUrl = `/complex/${encodeURIComponent(complex.id)}`;
+            const detailUrl = withBase(`complex/${encodeURIComponent(complex.id)}`);
             const detailWindow = window.open(detailUrl, "_blank");
             if (!detailWindow) window.location.assign(detailUrl);
           }}
@@ -232,11 +233,11 @@ export function MapPage() {
 
         <header className="top-bar">
           <a
-            href="/"
+            href={withBase("")}
             className="brand-title"
             onClick={(event) => {
               event.preventDefault();
-              window.location.assign("/");
+              window.location.assign(withBase(""));
             }}
           >
             budongsan <em>in seoul</em>

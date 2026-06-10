@@ -2,6 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
+  // GitHub Pages 프로젝트 사이트 배포 시: DEPLOY_BASE=/budongsan/ npm run build
+  base: process.env.DEPLOY_BASE ?? "/",
   plugins: [react()],
   server: {
     proxy: {

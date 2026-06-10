@@ -6,6 +6,7 @@
 // Complex points populate the HTML price chip markers.
 
 import type { Feature, FeatureCollection, MultiPolygon, Polygon } from "geojson";
+import { withBase } from "../lib/base";
 export type { FeatureCollection };
 
 export type BoundaryType = "district" | "dong";
@@ -43,8 +44,8 @@ async function loadFeatureCollection(url: string, level: BoundaryType): Promise<
 
 export async function loadBoundaries(): Promise<BoundarySet> {
   const [districts, dongs] = await Promise.all([
-    loadFeatureCollection("/boundaries/seoul-sigg.geojson", "district"),
-    loadFeatureCollection("/boundaries/seoul-dong.geojson", "dong"),
+    loadFeatureCollection(withBase("boundaries/seoul-sigg.geojson"), "district"),
+    loadFeatureCollection(withBase("boundaries/seoul-dong.geojson"), "dong"),
   ]);
   return { districts, dongs };
 }
@@ -55,7 +56,7 @@ export function centerOf(feature: BoundaryFeature): [number, number] {
 
 /** Pre-ranked complex points (used to populate price chip markers). */
 export async function loadComplexes(): Promise<FeatureCollection> {
-  const response = await fetch("/boundaries/seoul-complexes.geojson");
+  const response = await fetch(withBase("boundaries/seoul-complexes.geojson"));
   if (!response.ok) throw new Error(`Failed to load complexes: ${response.status}`);
   return response.json();
 }
