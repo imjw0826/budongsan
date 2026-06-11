@@ -9,6 +9,8 @@ type ComplexFeatureProperties = {
   district?: string;
   neighborhood?: string;
   avgPrice?: number | null;
+  minPrice?: number | null;
+  maxPrice?: number | null;
   households?: number | null;
   buildingCount?: number | null;
   rank?: number | null;
@@ -70,6 +72,8 @@ export function mapComplexFeatureToApartment(
     lat: lat as number,
     lng: lng as number,
     avgPrice: finiteNumber(props.avgPrice),
+    minPrice: finiteNumber(props.minPrice),
+    maxPrice: finiteNumber(props.maxPrice),
     households: finiteNumber(props.households) ?? 0,
     buildingCount: finiteNumber(props.buildingCount) ?? 0,
     rank: finiteNumber(props.rank) ?? Number.MAX_SAFE_INTEGER,

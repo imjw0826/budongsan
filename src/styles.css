@@ -414,6 +414,70 @@ button {
   opacity: 0.9;
 }
 
+/* 검색 드롭다운 — 검색창 바로 아래에 매칭 단지 목록 */
+.search-box {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+}
+
+.search-results {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1200;
+  min-width: 240px;
+  max-width: 320px;
+  margin: 0;
+  padding: 5px;
+  list-style: none;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.08),
+    0 8px 24px rgba(0, 0, 0, 0.14);
+  pointer-events: auto;
+}
+
+.search-results li + li {
+  margin-top: 1px;
+}
+
+.search-results button {
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.search-results button:hover {
+  background: rgba(0, 122, 255, 0.1);
+}
+
+.search-results button strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.search-results button span {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--color-text-subtle);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
 .search-control:focus-within {
   box-shadow:
     0 0 0 3.5px rgba(0, 122, 255, 0.25),
@@ -657,7 +721,9 @@ button {
 
 .price-marker {
   display: grid;
-  width: 98px;
+  width: max-content;
+  min-width: 98px;
+  max-width: 150px;
   height: 36px;
   align-content: center;
   padding: 4px 10px;

@@ -33,6 +33,8 @@ export type ApartmentMapItem = {
   lat: number;
   lng: number;
   avgPrice: number | null;
+  minPrice: number | null;
+  maxPrice: number | null;
   households: number;
   buildingCount: number;
   rank: number;

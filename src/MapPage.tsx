@@ -1,6 +1,6 @@
 // Map screen — split out of App.tsx so it can be lazy-loaded.
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useMemo, useState, type CSSProperties } from "react";
 import { booleanPointInPolygon, point } from "@turf/turf";
 import { ChevronLeft, ChevronRight, Mail, Search, X } from "lucide-react";
 import { LeafletMap } from "./map/leaflet/LeafletMap";
@@ -105,20 +105,11 @@ export function MapPage() {
   const [flyTarget, setFlyTarget] = useState<{ center: [number, number]; zoom: number } | null>(null);
   const layerVisibility = useMemo(() => getZoomLayerVisibility(zoom), [zoom]);
   const { boundaries, complexes, boundaryError } = useMapData();
-  const [updateLabel, setUpdateLabel] = useState<string>("2026-05-12");
+  const [hoveredRegionName, setHoveredRegionName] = useState<string | null>(null);
   const [contactOpen, setContactOpen] = useState(false);
   const [contactMessage, setContactMessage] = useState("");
   const [contactSent, setContactSent] = useState(false);
   const phaseCounters = usePanZoomPhaseCounters();
-
-  useEffect(() => {
-    fetch(withBase("api/meta.json"))
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data: { lastUpdated?: string } | null) => {
-        if (data?.lastUpdated) setUpdateLabel(data.lastUpdated);
-      })
-      .catch(() => undefined);
-  }, []);
 
   const selectedRegion: BoundarySelection | null = useMemo(() => {
     if (selectedDong) {
@@ -177,6 +168,20 @@ export function MapPage() {
     return pickDistributedApartments(candidates, viewport, zoom, displayLimit);
   }, [apartmentRegion, layerVisibility.showApartmentLabels, rankedComplexes, viewport, zoom, query, priceMin, priceMax]);
 
+  // 검색창 아래 드롭다운: 지역 선택과 무관하게 전체 단지에서 이름·구·동 매칭
+  const searchResults = useMemo(() => {
+    const lower = query.trim().toLowerCase();
+    if (lower.length < 2) return [];
+    const hits: ApartmentMapItem[] = [];
+    for (const c of rankedComplexes) {
+      const hay = `${c.name} ${c.district} ${c.neighborhood}`.toLowerCase();
+      if (!hay.includes(lower)) continue;
+      hits.push(c);
+      if (hits.length >= 8) break;
+    }
+    return hits;
+  }, [query, rankedComplexes]);
+
   usePerfLogger(() => ({
     zoom,
     markerCount: apartments.length,
@@ -219,6 +224,7 @@ export function MapPage() {
           flyTarget={flyTarget}
           onDistrictClick={onDistrictClick}
           onDongClick={onDongClick}
+          onRegionHover={setHoveredRegionName}
           onApartmentSelect={(complex) => {
             const detailUrl = withBase(`complex/${encodeURIComponent(complex.id)}`);
             const detailWindow = window.open(detailUrl, "_blank");
@@ -242,6 +248,7 @@ export function MapPage() {
           >
             budongsan <em>in seoul</em>
           </a>
+          <div className="search-box">
           <label className={`search-control${query ? " search-control--filled" : ""}`}>
             <Search size={13} className="search-control-icon" aria-hidden="true" />
             <input
@@ -261,9 +268,27 @@ export function MapPage() {
               </button>
             ) : null}
           </label>
-          <div className="update-badge" title="공공데이터 마지막 수집 시각">
-            <span>매주 갱신</span>
-            <strong>{updateLabel}</strong>
+          {searchResults.length > 0 && (
+            <ul className="search-results" role="listbox" aria-label="검색된 아파트">
+              {searchResults.map((c) => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const detailUrl = withBase(`complex/${encodeURIComponent(c.id)}`);
+                      const detailWindow = window.open(detailUrl, "_blank");
+                      if (!detailWindow) window.location.assign(detailUrl);
+                    }}
+                  >
+                    <strong>{c.name}</strong>
+                    <span>
+                      {c.district} {c.neighborhood}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
           </div>
           <div className="price-range" aria-label="가격 필터">
             <div className="price-range-readout">
@@ -323,7 +348,8 @@ export function MapPage() {
             if (selectedDong) onBackToDongs();
             else if (selectedDistrict) onBackToDistricts();
           };
-          const title = selectedDong?.properties.name
+          const title = hoveredRegionName
+            ?? selectedDong?.properties.name
             ?? selectedDistrict?.properties.name
             ?? "서울특별시";
           return (

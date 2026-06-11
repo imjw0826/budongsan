@@ -24,16 +24,18 @@ const complexes = db
     SELECT
       c.id, c.name, c.district, c.neighborhood, c.lat, c.lng,
       c.households, c.buildings AS buildingCount,
-      COALESCE(vf.avg_price, p.avg_price, (c.min_price + c.max_price) / 2.0) AS avgPrice
+      COALESCE(vf.avg_price, p.avg_price, (c.min_price + c.max_price) / 2.0) AS avgPrice,
+      COALESCE(vf.min_price, p.min_price, c.min_price) AS minPrice,
+      COALESCE(vf.max_price, p.max_price, c.max_price) AS maxPrice
     FROM apartment_complexes c
     LEFT JOIN (
-      SELECT complex_id, AVG(price) AS avg_price
+      SELECT complex_id, AVG(price) AS avg_price, MIN(price) AS min_price, MAX(price) AS max_price
       FROM official_prices
       WHERE source = 'vworld-file' AND price > 0
       GROUP BY complex_id
     ) vf ON vf.complex_id = c.id
     LEFT JOIN (
-      SELECT complex_id, AVG(price) AS avg_price
+      SELECT complex_id, AVG(price) AS avg_price, MIN(price) AS min_price, MAX(price) AS max_price
       FROM official_prices
       WHERE source <> 'vworld-file' AND price > 0
       GROUP BY complex_id
@@ -64,6 +66,8 @@ const complexesFc = {
       district: c.district,
       neighborhood: c.neighborhood,
       avgPrice: c.avgPrice == null ? null : Number(c.avgPrice.toFixed(2)),
+      minPrice: c.minPrice == null ? null : Number(c.minPrice.toFixed(2)),
+      maxPrice: c.maxPrice == null ? null : Number(c.maxPrice.toFixed(2)),
       households: c.households,
       buildingCount: c.buildingCount ?? 0,
       rank: c.rank,

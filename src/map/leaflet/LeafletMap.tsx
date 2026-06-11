@@ -23,8 +23,18 @@ const CARTO_ATTR =
 
 const SEOUL_CENTER: L.LatLngTuple = [37.5532, 126.99];
 
-function formatPrice(value: number) {
-  return `${value.toFixed(value % 1 === 0 ? 0 : 1)}억`;
+function formatPriceValue(value: number) {
+  return value.toFixed(value % 1 === 0 ? 0 : 1);
+}
+
+/** "13.1~16억" — 최소·최대가 같으면 단일 값, 없으면 평균으로 폴백. */
+function formatPriceRange(c: { minPrice: number | null; maxPrice: number | null; avgPrice: number | null }) {
+  const { minPrice, maxPrice, avgPrice } = c;
+  if (minPrice != null && maxPrice != null && maxPrice > 0) {
+    if (formatPriceValue(minPrice) === formatPriceValue(maxPrice)) return `${formatPriceValue(maxPrice)}억`;
+    return `${formatPriceValue(minPrice)}~${formatPriceValue(maxPrice)}억`;
+  }
+  return `${formatPriceValue(avgPrice ?? 0)}억`;
 }
 
 export type LeafletMapProps = {
@@ -36,6 +46,7 @@ export type LeafletMapProps = {
   flyTarget: { center: [number, number]; zoom: number } | null;
   onDistrictClick: (feature: BoundaryFeature) => void;
   onDongClick: (feature: BoundaryFeature) => void;
+  onRegionHover: (name: string | null) => void;
   onApartmentSelect: (complex: ApartmentMapItem) => void;
   onViewportChange: (viewport: MapViewport) => void;
   onZoomChange: (zoom: number) => void;
@@ -50,6 +61,7 @@ export function LeafletMap({
   flyTarget,
   onDistrictClick,
   onDongClick,
+  onRegionHover,
   onApartmentSelect,
   onViewportChange,
   onZoomChange,
@@ -65,6 +77,7 @@ export function LeafletMap({
   const cb = useRef({
     onDistrictClick,
     onDongClick,
+    onRegionHover,
     onApartmentSelect,
     onViewportChange,
     onZoomChange,
@@ -73,6 +86,7 @@ export function LeafletMap({
     cb.current = {
       onDistrictClick,
       onDongClick,
+      onRegionHover,
       onApartmentSelect,
       onViewportChange,
       onZoomChange,
@@ -81,6 +95,7 @@ export function LeafletMap({
     onApartmentSelect,
     onDistrictClick,
     onDongClick,
+    onRegionHover,
     onViewportChange,
     onZoomChange,
   ]);
@@ -160,11 +175,13 @@ export function LeafletMap({
             cb.current.onDistrictClick(f);
           });
           lyr.on("mouseover", () => {
+            cb.current.onRegionHover(f.properties.name);
             if (String(f.properties.id) !== selectedDistrictId) {
               (lyr as L.Path).setStyle({ weight: 1.4, opacity: 1 });
             }
           });
           lyr.on("mouseout", () => {
+            cb.current.onRegionHover(null);
             if (String(f.properties.id) !== selectedDistrictId) {
               (lyr as L.Path).setStyle({ weight: 0.8, opacity: 0.85 });
             }
@@ -207,6 +224,8 @@ export function LeafletMap({
             L.DomEvent.stopPropagation(event);
             cb.current.onDongClick(f);
           });
+          lyr.on("mouseover", () => cb.current.onRegionHover(f.properties.name));
+          lyr.on("mouseout", () => cb.current.onRegionHover(null));
         },
       },
     );
@@ -226,7 +245,7 @@ export function LeafletMap({
       const html = `
         <button class="price-marker" type="button">
           <span>${escapeHtml(c.name)}</span>
-          <strong>${formatPrice(c.avgPrice ?? 0)}</strong>
+          <strong>${formatPriceRange(c)}</strong>
         </button>
         <span class="price-marker-arrow"></span>
       `;
