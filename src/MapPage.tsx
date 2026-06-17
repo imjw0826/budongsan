@@ -22,6 +22,7 @@ import {
 } from "./map/constants";
 import { useMapData } from "./map/data/useMapData";
 import { withBase } from "./lib/base";
+import { buildSearchDoc, scoreMatch, type SearchDoc } from "./lib/koreanSearch";
 import { usePerfLogger } from "./map/perf/usePerfLogger";
 import type { ApartmentMapItem } from "./map/types";
 
@@ -142,21 +143,36 @@ export function MapPage() {
     return mapComplexCollectionToApartments(complexes, districtCenters);
   }, [districtCenters, complexes]);
 
+  // 단지별 검색 문서(원문/자모/초성)는 단지 목록이 바뀔 때 한 번만 분해해 둔다.
+  const searchIndex = useMemo(() => {
+    const map = new Map<string, { nameDoc: SearchDoc; regionRaw: string }>();
+    for (const c of rankedComplexes) {
+      map.set(c.id, {
+        nameDoc: buildSearchDoc(c.name),
+        regionRaw: `${c.district}${c.neighborhood}`.toLowerCase().replace(/\s+/g, ""),
+      });
+    }
+    return map;
+  }, [rankedComplexes]);
+
+  // 질의어도 한 번만 분해 (자모/초성).
+  const queryDoc = useMemo(() => buildSearchDoc(query.trim()), [query]);
+
   const apartmentRegion = selectedDong ?? selectedDistrict;
 
   const apartments = useMemo(() => {
     if (!apartmentRegion || !layerVisibility.showApartmentLabels || !viewport) return [];
     const displayLimit = complexRankBudget(zoom);
     if (displayLimit === 0) return [];
-    const lower = query.trim().toLowerCase();
+    const hasQuery = queryDoc.raw.length > 0;
     const candidates: ApartmentMapItem[] = [];
     for (const c of rankedComplexes) {
       if (c.lat < viewport.south || c.lat > viewport.north) continue;
       if (c.lng < viewport.west || c.lng > viewport.east) continue;
       if (!booleanPointInPolygon(point([c.lng, c.lat]), apartmentRegion)) continue;
-      if (lower) {
-        const hay = `${c.name} ${c.district} ${c.neighborhood}`.toLowerCase();
-        if (!hay.includes(lower)) continue;
+      if (hasQuery) {
+        const doc = searchIndex.get(c.id);
+        if (!doc || scoreMatch(queryDoc, doc.nameDoc, doc.regionRaw) === 0) continue;
       }
       const avg = c.avgPrice ?? 0;
       if (avg < priceMin) continue;
@@ -166,21 +182,23 @@ export function MapPage() {
       candidates.push({ ...c, avgPrice: avg });
     }
     return pickDistributedApartments(candidates, viewport, zoom, displayLimit);
-  }, [apartmentRegion, layerVisibility.showApartmentLabels, rankedComplexes, viewport, zoom, query, priceMin, priceMax]);
+  }, [apartmentRegion, layerVisibility.showApartmentLabels, rankedComplexes, viewport, zoom, queryDoc, searchIndex, priceMin, priceMax]);
 
-  // 검색창 아래 드롭다운: 지역 선택과 무관하게 전체 단지에서 이름·구·동 매칭
+  // 검색창 아래 드롭다운: 지역 선택과 무관하게 전체 단지에서 한글 친화 매칭.
+  // 초성("ㄱㅎㄱ")·미완성 글자("경희궁자")·오타("레미안"→래미안) 모두 잡고
+  // 일치 점수 → 인기 순위 순으로 정렬해 상위 8개만 노출.
   const searchResults = useMemo(() => {
-    const lower = query.trim().toLowerCase();
-    if (lower.length < 2) return [];
-    const hits: ApartmentMapItem[] = [];
+    if (queryDoc.raw.length < 1) return [];
+    const scored: { c: ApartmentMapItem; score: number }[] = [];
     for (const c of rankedComplexes) {
-      const hay = `${c.name} ${c.district} ${c.neighborhood}`.toLowerCase();
-      if (!hay.includes(lower)) continue;
-      hits.push(c);
-      if (hits.length >= 8) break;
+      const doc = searchIndex.get(c.id);
+      if (!doc) continue;
+      const score = scoreMatch(queryDoc, doc.nameDoc, doc.regionRaw);
+      if (score > 0) scored.push({ c, score });
     }
-    return hits;
-  }, [query, rankedComplexes]);
+    scored.sort((a, b) => b.score - a.score || a.c.rank - b.c.rank);
+    return scored.slice(0, 8).map((s) => s.c);
+  }, [queryDoc, rankedComplexes, searchIndex]);
 
   usePerfLogger(() => ({
     zoom,
