@@ -952,6 +952,20 @@ button {
   pointer-events: auto;
 }
 
+/* Leaflet divIcon 루트(iconSize 0)가 좌표점에 놓이므로, 라벨을 그 점 중앙에
+   오도록 당긴다. */
+.district-label-shell .district-label,
+.dong-label-shell .dong-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+}
+
+.district-label-shell .district-label:hover {
+  transform: translate(-50%, calc(-50% - 1px));
+}
+
 .city-label,
 .district-label,
 .dong-label {

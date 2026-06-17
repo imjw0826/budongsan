@@ -70,6 +70,8 @@ export function LeafletMap({
   const mapRef = useRef<L.Map | null>(null);
   const districtLayerRef = useRef<L.GeoJSON | null>(null);
   const dongLayerRef = useRef<L.GeoJSON | null>(null);
+  const districtLabelLayerRef = useRef<L.LayerGroup | null>(null);
+  const dongLabelLayerRef = useRef<L.LayerGroup | null>(null);
   const markerLayerRef = useRef<L.LayerGroup | null>(null);
 
   // Keep latest callbacks reachable from imperative Leaflet handlers without
@@ -145,6 +147,8 @@ export function LeafletMap({
       mapRef.current = null;
       districtLayerRef.current = null;
       dongLayerRef.current = null;
+      districtLabelLayerRef.current = null;
+      dongLabelLayerRef.current = null;
       markerLayerRef.current = null;
     };
   }, []);
@@ -233,6 +237,67 @@ export function LeafletMap({
     dongLayerRef.current = layer;
     return () => {
       layer.remove();
+    };
+  }, [dongs, selectedDistrictId, selectedDongId]);
+
+  // ---- District name labels (overview only — no district selected) ----
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    districtLabelLayerRef.current?.remove();
+    districtLabelLayerRef.current = null;
+    if (!districts || selectedDistrictId) return;
+    const group = L.layerGroup();
+    for (const f of districts) {
+      const center = f.properties.center; // [lat, lng]
+      if (!center) continue;
+      const icon = L.divIcon({
+        className: "district-label-shell",
+        html: `<span class="district-label">${escapeHtml(f.properties.name)}</span>`,
+        iconSize: [0, 0],
+        iconAnchor: [0, 0],
+      });
+      const marker = L.marker(center, { icon, keyboard: false });
+      marker.on("click", () => cb.current.onDistrictClick(f));
+      marker.on("mouseover", () => cb.current.onRegionHover(f.properties.name));
+      marker.on("mouseout", () => cb.current.onRegionHover(null));
+      marker.addTo(group);
+    }
+    group.addTo(map);
+    districtLabelLayerRef.current = group;
+    return () => {
+      group.remove();
+    };
+  }, [districts, selectedDistrictId]);
+
+  // ---- Dong name labels (when a district is selected) ----
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    dongLabelLayerRef.current?.remove();
+    dongLabelLayerRef.current = null;
+    if (!selectedDistrictId || dongs.length === 0) return;
+    const group = L.layerGroup();
+    for (const f of dongs) {
+      const center = f.properties.center; // [lat, lng]
+      if (!center) continue;
+      const isSelected = String(f.properties.id) === selectedDongId;
+      const icon = L.divIcon({
+        className: "dong-label-shell",
+        html: `<span class="dong-label${isSelected ? " selected" : ""}">${escapeHtml(f.properties.name)}</span>`,
+        iconSize: [0, 0],
+        iconAnchor: [0, 0],
+      });
+      const marker = L.marker(center, { icon, keyboard: false });
+      marker.on("click", () => cb.current.onDongClick(f));
+      marker.on("mouseover", () => cb.current.onRegionHover(f.properties.name));
+      marker.on("mouseout", () => cb.current.onRegionHover(null));
+      marker.addTo(group);
+    }
+    group.addTo(map);
+    dongLabelLayerRef.current = group;
+    return () => {
+      group.remove();
     };
   }, [dongs, selectedDistrictId, selectedDongId]);
 
