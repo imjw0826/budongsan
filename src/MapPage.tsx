@@ -1,6 +1,6 @@
 // Map screen — split out of App.tsx so it can be lazy-loaded.
 
-import { useCallback, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { booleanPointInPolygon, point } from "@turf/turf";
 import { ChevronLeft, ChevronRight, Mail, Search, X } from "lucide-react";
 import { LeafletMap } from "./map/leaflet/LeafletMap";
@@ -143,20 +143,50 @@ export function MapPage() {
     return mapComplexCollectionToApartments(complexes, districtCenters);
   }, [districtCenters, complexes]);
 
-  // 단지별 검색 문서(원문/자모/초성)는 단지 목록이 바뀔 때 한 번만 분해해 둔다.
-  const searchIndex = useMemo(() => {
-    const map = new Map<string, { nameDoc: SearchDoc; regionRaw: string }>();
-    for (const c of rankedComplexes) {
-      map.set(c.id, {
-        nameDoc: buildSearchDoc(c.name),
-        regionRaw: `${c.district}${c.neighborhood}`.toLowerCase().replace(/\s+/g, ""),
-      });
-    }
-    return map;
+  // 단지별 검색 문서(원문/자모/초성)는 9천여 건을 es-hangul 로 분해하는 비용이
+  // 있어 첫 페인트를 막지 않도록 마운트 후 idle 시점에 만든다. 색인이 준비되기
+  // 전 짧은 구간에는 원문 부분일치로 대체(아래 fallbackMatch)한다.
+  const [searchIndex, setSearchIndex] =
+    useState<Map<string, { nameDoc: SearchDoc; regionRaw: string }> | null>(null);
+
+  useEffect(() => {
+    if (rankedComplexes.length === 0) return;
+    let cancelled = false;
+    const build = () => {
+      if (cancelled) return;
+      const map = new Map<string, { nameDoc: SearchDoc; regionRaw: string }>();
+      for (const c of rankedComplexes) {
+        map.set(c.id, {
+          nameDoc: buildSearchDoc(c.name),
+          regionRaw: `${c.district}${c.neighborhood}`.toLowerCase().replace(/\s+/g, ""),
+        });
+      }
+      if (!cancelled) setSearchIndex(map);
+    };
+    const ric = (window as unknown as {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+    }).requestIdleCallback;
+    const handle = ric ? ric(build, { timeout: 1500 }) : window.setTimeout(build, 200);
+    return () => {
+      cancelled = true;
+      const cic = (window as unknown as { cancelIdleCallback?: (h: number) => void }).cancelIdleCallback;
+      if (ric && cic) cic(handle);
+      else window.clearTimeout(handle);
+    };
   }, [rankedComplexes]);
 
   // 질의어도 한 번만 분해 (자모/초성).
   const queryDoc = useMemo(() => buildSearchDoc(query.trim()), [query]);
+
+  // 색인이 아직 안 만들어진 짧은 구간용 단순 부분일치(원문 기준).
+  const fallbackMatch = useCallback(
+    (c: ApartmentMapItem) => {
+      if (!queryDoc.raw) return true;
+      const hay = `${c.name}${c.district}${c.neighborhood}`.toLowerCase().replace(/\s+/g, "");
+      return hay.includes(queryDoc.raw);
+    },
+    [queryDoc],
+  );
 
   const apartmentRegion = selectedDong ?? selectedDistrict;
 
@@ -171,8 +201,12 @@ export function MapPage() {
       if (c.lng < viewport.west || c.lng > viewport.east) continue;
       if (!booleanPointInPolygon(point([c.lng, c.lat]), apartmentRegion)) continue;
       if (hasQuery) {
-        const doc = searchIndex.get(c.id);
-        if (!doc || scoreMatch(queryDoc, doc.nameDoc, doc.regionRaw) === 0) continue;
+        const doc = searchIndex?.get(c.id);
+        if (doc) {
+          if (scoreMatch(queryDoc, doc.nameDoc, doc.regionRaw) === 0) continue;
+        } else if (!fallbackMatch(c)) {
+          continue;
+        }
       }
       const avg = c.avgPrice ?? 0;
       if (avg < priceMin) continue;
@@ -182,13 +216,17 @@ export function MapPage() {
       candidates.push({ ...c, avgPrice: avg });
     }
     return pickDistributedApartments(candidates, viewport, zoom, displayLimit);
-  }, [apartmentRegion, layerVisibility.showApartmentLabels, rankedComplexes, viewport, zoom, queryDoc, searchIndex, priceMin, priceMax]);
+  }, [apartmentRegion, layerVisibility.showApartmentLabels, rankedComplexes, viewport, zoom, queryDoc, searchIndex, fallbackMatch, priceMin, priceMax]);
 
   // 검색창 아래 드롭다운: 지역 선택과 무관하게 전체 단지에서 한글 친화 매칭.
   // 초성("ㄱㅎㄱ")·미완성 글자("경희궁자")·오타("레미안"→래미안) 모두 잡고
   // 일치 점수 → 인기 순위 순으로 정렬해 상위 8개만 노출.
   const searchResults = useMemo(() => {
     if (queryDoc.raw.length < 1) return [];
+    // 색인이 아직이면 원문 부분일치로라도 결과를 보여준다(점수 0 처리).
+    if (!searchIndex) {
+      return rankedComplexes.filter(fallbackMatch).slice(0, 8);
+    }
     const scored: { c: ApartmentMapItem; score: number }[] = [];
     for (const c of rankedComplexes) {
       const doc = searchIndex.get(c.id);
@@ -198,7 +236,7 @@ export function MapPage() {
     }
     scored.sort((a, b) => b.score - a.score || a.c.rank - b.c.rank);
     return scored.slice(0, 8).map((s) => s.c);
-  }, [queryDoc, rankedComplexes, searchIndex]);
+  }, [queryDoc, rankedComplexes, searchIndex, fallbackMatch]);
 
   usePerfLogger(() => ({
     zoom,

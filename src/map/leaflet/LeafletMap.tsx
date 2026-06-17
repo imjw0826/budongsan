@@ -115,6 +115,12 @@ export function LeafletMap({
       zoomControl: false,
       attributionControl: true,
       preferCanvas: true,
+      // 정수 줌 스냅을 끄면 휠·트랙패드 줌이 특정 레벨에서 끊기지 않고
+      // 분수 줌으로 연속적으로 이어진다.
+      zoomSnap: 0,
+      zoomDelta: 0.4,
+      wheelPxPerZoomLevel: 140,
+      wheelDebounceTime: 20,
     });
 
     L.tileLayer(CARTO_LIGHT, {
