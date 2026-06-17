@@ -116,11 +116,11 @@ export function LeafletMap({
       attributionControl: true,
       preferCanvas: true,
       // 정수 줌 스냅을 끄면 휠·트랙패드 줌이 특정 레벨에서 끊기지 않고
-      // 분수 줌으로 연속적으로 이어진다. wheelPxPerZoomLevel 은 기본값(60)을
-      // 써서 스크롤 한 번에 충분히 확대/축소되도록 한다(값이 클수록 둔감).
+      // 분수 줌으로 연속적으로 이어진다. wheelPxPerZoomLevel 이 작을수록
+      // 같은 스크롤에 더 크게 확대/축소된다(=민감).
       zoomSnap: 0,
       zoomDelta: 0.4,
-      wheelPxPerZoomLevel: 60,
+      wheelPxPerZoomLevel: 30,
       wheelDebounceTime: 20,
     });
 
