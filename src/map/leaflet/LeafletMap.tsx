@@ -115,13 +115,8 @@ export function LeafletMap({
       zoomControl: false,
       attributionControl: true,
       preferCanvas: true,
-      // 정수 줌 스냅을 끄면 휠·트랙패드 줌이 특정 레벨에서 끊기지 않고
-      // 분수 줌으로 연속적으로 이어진다. wheelPxPerZoomLevel 이 작을수록
-      // 같은 스크롤에 더 크게 확대/축소된다(=민감).
-      zoomSnap: 0,
-      zoomDelta: 0.4,
-      wheelPxPerZoomLevel: 30,
-      wheelDebounceTime: 20,
+      // 줌은 Leaflet 기본(정수 스냅 + 보간 애니메이션)을 쓴다. zoomSnap 0(분수
+      // 줌)은 매 프레임 타일·벡터 재렌더로 휠 줌을 무겁게 만들어 제거했다.
     });
 
     L.tileLayer(CARTO_LIGHT, {
