@@ -16,7 +16,8 @@ import type { BoundaryFeature } from "../../data/boundaries";
 import type { MapViewport } from "../viewport";
 import type { ApartmentMapItem } from "../types";
 
-const CARTO_LIGHT = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+// light_nolabels: 도로·건물·강 등 선 요소는 유지하되 지명·도로명 라벨은 뺀 변형.
+const CARTO_LIGHT = "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png";
 const CARTO_ATTR =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> ' +
   '&copy; <a href="https://carto.com/attributions">CARTO</a>';
