@@ -1,13 +1,13 @@
 // LeafletMap — single component owning the Leaflet map instance.
 //
 // Stack (backrooms.kr-style):
-//   • CARTO Positron raster tiles  (light, line-art look, OSM-derived)
+//   • VWorld 백지도 WMTS raster tiles (흑백 필터로 선화 톤), 키 없으면 Esri 회색 지도
 //   • Optional district / dong outline layers (clickable)
 //   • HTML divIcon price chip markers for apartments
 //   • flyTo + viewport/zoom change callbacks
 //
-// All vector tile / WebGL machinery removed. CARTO renders everything below
-// our overlays as PNG tiles; we only draw boundary outlines and chips.
+// All vector tile / WebGL machinery removed. The tile layer renders everything
+// below our overlays as PNG tiles; we only draw boundary outlines and chips.
 
 import { useEffect, useRef } from "react";
 import L from "leaflet";
@@ -16,11 +16,29 @@ import type { BoundaryFeature } from "../../data/boundaries";
 import type { MapViewport } from "../viewport";
 import type { ApartmentMapItem } from "../types";
 
-// light_nolabels: 도로·건물·강 등 선 요소는 유지하되 지명·도로명 라벨은 뺀 변형.
-const CARTO_LIGHT = "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png";
-const CARTO_ATTR =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> ' +
-  '&copy; <a href="https://carto.com/attributions">CARTO</a>';
+// 배경 지도 타일. CARTO basemap 이 API 키를 요구하게 바뀌어(키 없으면 "API KEY
+// REQUIRED" 타일만 반환) 국토부 VWorld 백지도(white)로 교체했다. 한글 라벨만
+// 있고 z18 까지 선명하다. 키가 없으면 Esri 무라벨 회색 지도(한국은 z13 까지
+// 원본, 이후 확대 표시)로 대체해 지도가 비지 않게 한다.
+const VWORLD_KEY = import.meta.env.VITE_VWORLD_API_KEY as string | undefined;
+
+const BASEMAP: { url: string; options: L.TileLayerOptions } = VWORLD_KEY
+  ? {
+      url: `https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_KEY}/white/{z}/{y}/{x}.png`,
+      options: {
+        attribution: '&copy; <a href="https://www.vworld.kr">VWorld</a> 국토교통부',
+        maxNativeZoom: 18,
+        maxZoom: 18,
+      },
+    }
+  : {
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+      options: {
+        attribution: "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ",
+        maxNativeZoom: 13,
+        maxZoom: 18,
+      },
+    };
 
 const SEOUL_CENTER: L.LatLngTuple = [37.5532, 126.99];
 
@@ -119,10 +137,15 @@ export function LeafletMap({
       // 줌)은 매 프레임 타일·벡터 재렌더로 휠 줌을 무겁게 만들어 제거했다.
     });
 
-    L.tileLayer(CARTO_LIGHT, {
-      attribution: CARTO_ATTR,
-      subdomains: "abcd",
-      maxZoom: 20,
+    L.tileLayer(BASEMAP.url, {
+      ...BASEMAP.options,
+      className: "basemap-tiles",
+      // 배경은 흐리게 깔아 구·동 라벨과 가격 칩이 먼저 보이게 한다.
+      // (Leaflet 이 인라인 opacity 를 쓰므로 CSS 가 아니라 옵션으로 지정)
+      opacity: 0.55,
+      // flyTo 애니메이션 중 거치는 중간 배율 타일은 받지 않고 최종 배율만 요청.
+      // 구 진입 한 번에 100건 넘던 요청이 크게 줄어 느린 타일 서버에서도 빨리 뜬다.
+      updateWhenZooming: false,
     }).addTo(map);
 
     const markerLayer = L.layerGroup().addTo(map);

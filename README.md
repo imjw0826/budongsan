@@ -5,7 +5,7 @@
 ## Tech Stack
 
 - Frontend: React, TypeScript, Vite
-- Map: Leaflet 1.9 + CARTO Positron raster tiles
+- Map: Leaflet 1.9 + VWorld 백지도 WMTS (`VITE_VWORLD_API_KEY`, 없으면 Esri 회색 지도)
 - Charts: Recharts
 - Icons: lucide-react
 - API server: Express + better-sqlite3

@@ -189,6 +189,13 @@ button {
   background: #dcebc8;
 }
 
+/* VWorld 백지도의 색(지하철 노선·IC 아이콘·공원)을 빼고 살짝 밝혀서 이전
+   CARTO Positron 같은 흑백 선화 톤으로 맞춘다. 타일 레이어 컨테이너 하나에만
+   걸어 합성 비용을 최소화. */
+.basemap-tiles {
+  filter: grayscale(1) contrast(0.8) brightness(1.08);
+}
+
 /* Leaflet stage — fills the .map-canvas section. */
 .leaflet-stage {
   position: absolute;
